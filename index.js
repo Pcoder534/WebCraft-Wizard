@@ -1,47 +1,92 @@
 document.addEventListener('DOMContentLoaded', (event) => {
     const canvas = document.querySelector('._canvas');
     const addDivButton = document.getElementById('_adddiv');
+    let selectedElement = null;
+    let isDragging = false;
+    let isResizing = false;
 
-    function makeDraggable(element) {
+    function makeDraggableResizable(element) {
         let offsetX = 0, offsetY = 0, initialX = 0, initialY = 0;
 
+        const resizer = document.createElement('div');
+        resizer.className = 'resizer';
+        element.appendChild(resizer);
+
         element.addEventListener('mousedown', dragMouseDown);
+        resizer.addEventListener('mousedown', resizeMouseDown);
+
+        element.addEventListener('click', (e) => {
+            if (isDragging || isResizing) return;
+            e.stopPropagation();
+            if (selectedElement === element) {
+                deselectElement();
+            } else {
+                selectElement(element);
+            }
+        });
 
         function dragMouseDown(e) {
+            if (isResizing) return;
             e.preventDefault();
             initialX = e.clientX;
             initialY = e.clientY;
+            offsetX = e.clientX - element.getBoundingClientRect().left;
+            offsetY = e.clientY - element.getBoundingClientRect().top;
+            isDragging = true;
             document.addEventListener('mousemove', dragElement);
             document.addEventListener('mouseup', closeDragElement);
         }
 
         function dragElement(e) {
             e.preventDefault();
-            offsetX = initialX - e.clientX;
-            offsetY = initialY - e.clientY;
-            initialX = e.clientX;
-            initialY = e.clientY;
 
-            // Calculate the new position
-            let newTop = element.offsetTop - offsetY;
-            let newLeft = element.offsetLeft - offsetX;
+            let newLeft = e.clientX - offsetX;
+            let newTop = e.clientY - offsetY;
 
-            // Get the boundaries of the canvas
             const canvasRect = canvas.getBoundingClientRect();
             const elementRect = element.getBoundingClientRect();
 
-            if (newTop < 0) newTop = 0;
-            if (newLeft < 0) newLeft = 0;
-            if (newTop + elementRect.height > canvasRect.height) newTop = canvasRect.height - elementRect.height;
-            if (newLeft + elementRect.width > canvasRect.width) newLeft = canvasRect.width - elementRect.width;
+            if (newTop < canvasRect.top) newTop = canvasRect.top;
+            if (newLeft < canvasRect.left) newLeft = canvasRect.left;
+            if (newTop + elementRect.height > canvasRect.bottom) newTop = canvasRect.bottom - elementRect.height;
+            if (newLeft + elementRect.width > canvasRect.right) newLeft = canvasRect.right - elementRect.width;
 
-            element.style.top = newTop + "px";
-            element.style.left = newLeft + "px";
+            element.style.top = newTop - canvasRect.top + "px";
+            element.style.left = newLeft - canvasRect.left + "px";
         }
 
         function closeDragElement() {
             document.removeEventListener('mousemove', dragElement);
             document.removeEventListener('mouseup', closeDragElement);
+            isDragging = false;
+        }
+
+        function resizeMouseDown(e) {
+            isResizing = true;
+            e.preventDefault();
+            document.addEventListener('mousemove', resizeElement);
+            document.addEventListener('mouseup', closeResizeElement);
+        }
+
+        function resizeElement(e) {
+            e.preventDefault();
+            const canvasRect = canvas.getBoundingClientRect();
+            const elementRect = element.getBoundingClientRect();
+
+            let newWidth = e.clientX - elementRect.left;
+            let newHeight = e.clientY - elementRect.top;
+
+            if (elementRect.left + newWidth > canvasRect.right) newWidth = canvasRect.right - elementRect.left;
+            if (elementRect.top + newHeight > canvasRect.bottom) newHeight = canvasRect.bottom - elementRect.top;
+
+            element.style.width = newWidth + "px";
+            element.style.height = newHeight + "px";
+        }
+
+        function closeResizeElement() {
+            document.removeEventListener('mousemove', resizeElement);
+            document.removeEventListener('mouseup', closeResizeElement);
+            isResizing = false;
         }
     }
 
@@ -56,6 +101,25 @@ document.addEventListener('DOMContentLoaded', (event) => {
         newDiv.style.left = '10px';
 
         canvas.appendChild(newDiv);
-        makeDraggable(newDiv);
+        makeDraggableResizable(newDiv);
+    });
+
+    function deselectElement() {
+        if (selectedElement) {
+            selectedElement.style.border = '1px solid #ccc';
+            selectedElement = null;
+        }
+    }
+
+    function selectElement(element) {
+        deselectElement();
+        selectedElement = element;
+        selectedElement.style.border = '2px dashed red';
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('draggable') && !e.target.classList.contains('resizer')) {
+            deselectElement();
+        }
     });
 });
