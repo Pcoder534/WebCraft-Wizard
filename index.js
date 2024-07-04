@@ -4,14 +4,191 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const delDivButton = document.getElementById('_deldiv');
     const getCodeButton = document.getElementById('_code');
     const codeDisplay = document.querySelector('._code');
-    const colorInput = document.getElementById('_color');
-    const roundnessInput = document.getElementById('_roundness');
+    const propsContainer = document.querySelector('._props');
     let selectedElement = null;
-    let isDragging = false;
-    let isResizing = false;
+    let elementCounter = 0;
+
+    const props = {
+        div: {
+            top: "input",
+            left: "input",
+            width: "input",
+            height: "input",
+            borderRadius: "slider-input",
+            backgroundColor: "color input",
+            color: "color input"
+        }
+    };
+
+    const elementsTree = {
+        id: 'canvas',
+        parent: null,
+        children: []
+    };
+
+    const elementsList = [];
+
+    function renderElements() {
+        canvas.innerHTML = '';
+        function renderNode(node, parentEl) {
+            if (node.id !== 'canvas') {
+                const element = document.createElement('div');
+                element.id = node.id;
+                element.classList.add('draggable');
+                const style = elementsList.find(el => el.id === node.id).style;
+                Object.keys(style).forEach(prop => {
+                    element.style[prop] = style[prop];
+                });
+
+                parentEl.appendChild(element);
+                makeDraggableResizable(element);
+                parentEl = element;
+            }
+
+            node.children.forEach(childNode => {
+                renderNode(childNode, parentEl);
+            });
+        }
+
+        renderNode(elementsTree, canvas);
+    }
+
+    function addElement(parentId) {
+        const newId = `element-${elementCounter++}`;
+        const newElement = {
+            id: newId,
+            parent: parentId,
+            children: []
+        };
+
+        const newElementStyle = {
+            id: newId,
+            style: {
+                position: 'absolute',
+                width: '100px',
+                height: '100px',
+                backgroundColor: 'blue',
+                top: '10px',
+                left: '10px'
+            }
+        };
+
+        const parentNode = findNode(elementsTree, parentId);
+        parentNode.children.push(newElement);
+        elementsList.push(newElementStyle);
+
+        renderElements();
+        selectElement(document.getElementById(newId));
+    }
+
+    function deleteElement(id) {
+        removeNode(elementsTree, id);
+        const index = elementsList.findIndex(el => el.id === id);
+        if (index !== -1) elementsList.splice(index, 1);
+
+        renderElements();
+    }
+
+    function getCode() {
+        let html = '';
+        let css = '';
+        function processNode(node) {
+            if (node.id !== 'canvas') {
+                const style = elementsList.find(el => el.id === node.id).style;
+                css += `#${node.id} {
+                    position: absolute;
+                    width: ${parseFloat(style.width) * 1.5}px;
+                    height: ${parseFloat(style.height) * 1.5}px;
+                    top: ${parseFloat(style.top) * 1.5}px;
+                    left: ${parseFloat(style.left) * 1.5}px;
+                    background-color: ${style.backgroundColor};
+                    border-radius: ${style.borderRadius || '0px'};
+                }\n`;
+
+                html += `<div id="${node.id}">\n`;
+            }
+
+            node.children.forEach(childNode => {
+                processNode(childNode);
+            });
+
+            if (node.id !== 'canvas') {
+                html += `</div>\n`;
+            }
+        }
+
+        processNode(elementsTree);
+
+        codeDisplay.innerText = `<!DOCTYPE html>\n<html lang="en">\n<head>\n\t<meta charset="UTF-8">\n\t<meta name="viewport" content="width=device-width, initial-scale=1.0">\n\t<title>Document</title>\n\t<style>\n${css}\n\t</style>\n</head>\n<body>\n${html}\n</body>\n</html>`;
+    }
+
+    function selectElement(element) {
+        if (selectedElement) {
+            selectedElement.style.border = '1px solid #ccc';
+        }
+        selectedElement = element;
+        selectedElement.style.border = '2px solid red';
+        delDivButton.disabled = false;
+        renderProps(element);
+    }
+
+    function renderProps(element) {
+        propsContainer.innerHTML = '';
+        const elementType = element.tagName.toLowerCase();
+        const elementProps = props[elementType];
+
+        Object.keys(elementProps).forEach(prop => {
+            const inputType = elementProps[prop];
+            const propLabel = document.createElement('label');
+            propLabel.innerText = prop;
+            propLabel.htmlFor = prop;
+
+            let propInput;
+            if (inputType === 'input') {
+                propInput = document.createElement('input');
+                propInput.type = 'text';
+                propInput.value = window.getComputedStyle(element)[prop];
+            } else if (inputType === 'slider-input') {
+                propInput = document.createElement('input');
+                propInput.type = 'range';
+                propInput.value = parseInt(window.getComputedStyle(element)[prop]) || 0;
+            } else if (inputType === 'color input') {
+                propInput = document.createElement('input');
+                propInput.type = 'color';
+                propInput.value = rgbToHex(window.getComputedStyle(element)[prop]);
+            }
+
+            propInput.id = prop;
+            propInput.className = '_input';
+            propInput.addEventListener('input', (e) => {
+                const elementData = elementsList.find(el => el.id === selectedElement.id);
+                elementData.style[prop] = e.target.value;
+                selectedElement.style[prop] = e.target.value;
+            });
+
+            propsContainer.appendChild(propLabel);
+            propsContainer.appendChild(propInput);
+        });
+    }
+
+    function rgbToHex(rgb) {
+        const result = rgb.match(/\d+/g).map((x) => parseInt(x).toString(16).padStart(2, '0')).join('');
+        return `#${result}`;
+    }
+
+    canvas.addEventListener('click', (e) => {
+        if (e.target === canvas) {
+            if (selectedElement) {
+                selectedElement.style.border = '1px solid #ccc';
+                selectedElement = null;
+                delDivButton.disabled = true;
+                propsContainer.innerHTML = '';
+            }
+        }
+    });
 
     function makeDraggableResizable(element) {
-        let offsetX = 0, offsetY = 0, initialX = 0, initialY = 0;
+        let offsetX = 0, offsetY = 0;
 
         const resizer = document.createElement('div');
         resizer.className = 'resizer';
@@ -21,7 +198,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
         resizer.addEventListener('mousedown', resizeMouseDown);
 
         element.addEventListener('click', (e) => {
-            if (isDragging || isResizing) return;
             e.stopPropagation();
             if (selectedElement !== element) {
                 selectElement(element);
@@ -29,31 +205,30 @@ document.addEventListener('DOMContentLoaded', (event) => {
         });
 
         function dragMouseDown(e) {
-            if (isResizing) return;
             e.preventDefault();
             e.stopPropagation();
-            initialX = e.clientX;
-            initialY = e.clientY;
             offsetX = e.clientX - element.getBoundingClientRect().left;
             offsetY = e.clientY - element.getBoundingClientRect().top;
-            isDragging = true;
             document.addEventListener('mousemove', dragElement);
             document.addEventListener('mouseup', closeDragElement);
         }
 
         function dragElement(e) {
             e.preventDefault();
+            const elementData = elementsList.find(el => el.id === element.id);
+            const parentRect = element.parentElement.getBoundingClientRect();
+
             let newLeft = e.clientX - offsetX;
             let newTop = e.clientY - offsetY;
 
-            const parentRect = element.parentElement.getBoundingClientRect();
             const elementRect = element.getBoundingClientRect();
-
             if (newTop < parentRect.top) newTop = parentRect.top;
             if (newLeft < parentRect.left) newLeft = parentRect.left;
             if (newTop + elementRect.height > parentRect.bottom) newTop = parentRect.bottom - elementRect.height;
             if (newLeft + elementRect.width > parentRect.right) newLeft = parentRect.right - elementRect.width;
 
+            elementData.style.left = `${newLeft - parentRect.left}px`;
+            elementData.style.top = `${newTop - parentRect.top}px`;
             element.style.top = newTop - parentRect.top + "px";
             element.style.left = newLeft - parentRect.left + "px";
         }
@@ -61,11 +236,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
         function closeDragElement() {
             document.removeEventListener('mousemove', dragElement);
             document.removeEventListener('mouseup', closeDragElement);
-            isDragging = false;
         }
 
         function resizeMouseDown(e) {
-            isResizing = true;
             e.preventDefault();
             e.stopPropagation();
             document.addEventListener('mousemove', resizeElement);
@@ -74,15 +247,20 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         function resizeElement(e) {
             e.preventDefault();
+            const elementData = elementsList.find(el => el.id === element.id);
             const parentRect = element.parentElement.getBoundingClientRect();
-            const elementRect = element.getBoundingClientRect();
 
-            let newWidth = e.clientX - elementRect.left;
-            let newHeight = e.clientY - elementRect.top;
+            let newWidth = e.clientX - element.getBoundingClientRect().left;
+            let newHeight = e.clientY - element.getBoundingClientRect().top;
 
-            if (elementRect.left + newWidth > parentRect.right) newWidth = parentRect.right - elementRect.left;
-            if (elementRect.top + newHeight > parentRect.bottom) newHeight = parentRect.bottom - elementRect.top;
+            const maxWidth = parentRect.right - element.getBoundingClientRect().left;
+            const maxHeight = parentRect.bottom - element.getBoundingClientRect().top;
 
+            if (newWidth > maxWidth) newWidth = maxWidth;
+            if (newHeight > maxHeight) newHeight = maxHeight;
+
+            elementData.style.width = `${newWidth}px`;
+            elementData.style.height = `${newHeight}px`;
             element.style.width = newWidth + "px";
             element.style.height = newHeight + "px";
         }
@@ -90,105 +268,40 @@ document.addEventListener('DOMContentLoaded', (event) => {
         function closeResizeElement() {
             document.removeEventListener('mousemove', resizeElement);
             document.removeEventListener('mouseup', closeResizeElement);
-            isResizing = false;
         }
     }
 
-    addDivButton.addEventListener('click', () => {
-        const newDiv = document.createElement('div');
-        newDiv.classList.add('draggable');
-        newDiv.style.position = 'absolute';
-        newDiv.style.width = '100px';
-        newDiv.style.height = '100px';
-        newDiv.style.backgroundColor = 'blue';
-        newDiv.style.top = '10px';
-        newDiv.style.left = '10px';
-
-        if (selectedElement) {
-            selectedElement.appendChild(newDiv);
-        } else {
-            canvas.appendChild(newDiv);
+    function findNode(tree, id) {
+        if (tree.id === id) {
+            return tree;
         }
-
-        selectElement(newDiv);
-        makeDraggableResizable(newDiv);
-    });
-
-    delDivButton.addEventListener('click', () => {
-        if (selectedElement) {
-            selectedElement.remove();
-            selectedElement = null;
-            delDivButton.disabled = true;
-        }
-    });
-
-    getCodeButton.addEventListener('click', () => {
-        let html = '';
-        let css = '';
-        const elements = Array.from(canvas.children);
-        let index = 0;
-        function processElement(el) {
-            const rect = el.getBoundingClientRect();
-            css += `.draggable-${index} {
-                position: absolute;
-                width: ${rect.width * 1.5}px;
-                height: ${rect.height * 1.5}px;
-                top: ${(rect.top - canvas.getBoundingClientRect().top) * 1.5}px;
-                left: ${(rect.left - canvas.getBoundingClientRect().left) * 1.5}px;
-                background-color: ${el.style.backgroundColor};
-                border-radius: ${el.style.borderRadius || '0px'};
-            }\n`;
-            html+=`<div class="draggable-${index}">\n`;
-            index++;
-            Array.from(el.children).forEach(child => {
-                if(!child.classList.contains("resizer")){
-                    processElement(child);
-                }
-            });
-            html+= `</div>\n`;
-        }
-
-        elements.forEach(el => {
-                if(!el.classList.contains("resizer"))processElement(el);
-        });
-        codeDisplay.innerText = `<!DOCTYPE html>\n<html lang="en">\n<head>\n\t<meta charset="UTF-8">\n\t<meta name="viewport" content="width=device-width, initial-scale=1.0">\n\t<title>Document</title>\n\t<style>\n${css}\n\t</style>\n</head>\n<body>\n${html}\n</body>\n</html>`;
-    });
-
-    function selectElement(element) {
-        if (selectedElement) {
-            selectedElement.style.border = '1px solid #ccc';
-        }
-        selectedElement = element;
-        selectedElement.style.border = '2px solid red';
-        delDivButton.disabled = false;
-        colorInput.value = rgbToHex(window.getComputedStyle(element).backgroundColor);
-        roundnessInput.value = parseInt(window.getComputedStyle(element).borderRadius) || 0;
-    }
-
-    function rgbToHex(rgb) {
-        const result = rgb.match(/\d+/g).map((x) => parseInt(x).toString(16).padStart(2, '0')).join('');
-        return `#${result}`;
-    }
-
-    colorInput.addEventListener('input', (e) => {
-        if (selectedElement) {
-            selectedElement.style.backgroundColor = e.target.value;
-        }
-    });
-
-    roundnessInput.addEventListener('input', (e) => {
-        if (selectedElement) {
-            selectedElement.style.borderRadius = `${e.target.value}px`;
-        }
-    });
-
-    canvas.addEventListener('click', (e) => {
-        if (e.target === canvas) {
-            if (selectedElement) {
-                selectedElement.style.border = '1px solid #ccc';
-                selectedElement = null;
-                delDivButton.disabled = true;
+        for (let i = 0; i < tree.children.length; i++) {
+            const result = findNode(tree.children[i], id);
+            if (result) {
+                return result;
             }
         }
-    });
+        return null;
+    }
+
+    function removeNode(tree, id) {
+        for (let i = 0; i < tree.children.length; i++) {
+            if (tree.children[i].id === id) {
+                tree.children.splice(i, 1);
+                return true;
+            } else {
+                const result = removeNode(tree.children[i], id);
+                if (result) {
+                    return result;
+                }
+            }
+        }
+        return false;
+    }
+
+    addDivButton.addEventListener('click', () => addElement('canvas'));
+    delDivButton.addEventListener('click', () => deleteElement(selectedElement.id));
+    getCodeButton.addEventListener('click', getCode);
+
+    renderElements();
 });
