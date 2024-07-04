@@ -9,8 +9,16 @@ document.addEventListener('DOMContentLoaded', (event) => {
     let elementCounter = 0;
     delDivButton.disabled = true;
 
+    const userDefinedIdMap = new Map();
+
     const props = {
+        body: {
+            backgroundColor: "color input",
+            color: "color input"
+        },
         div: {
+            uid: "text",
+            uclass: "text",
             top: "input",
             left: "input",
             width: "input",
@@ -73,8 +81,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 height: '100px',
                 backgroundColor: 'blue',
                 top: '10px',
-                left: '10px',
-                borderRadius: '0px'
+                left: '10px'
             }
         };
 
@@ -107,10 +114,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
                     top: ${parseFloat(style.top) * 1.5}px;
                     left: ${parseFloat(style.left) * 1.5}px;
                     background-color: ${style.backgroundColor};
-                    border-radius: ${parseFloat(style.borderRadius || '0px') * 1.5}px;
+                    border-radius: ${style.borderRadius || '0px'};
                 }\n`;
 
-                html += `<div id="${node.id}">\n`;
+                html += `<div id="${node.id}" class="${style.uclass || ''}">\n`;
             }
 
             node.children.forEach(childNode => {
@@ -124,7 +131,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         processNode(elementsTree);
 
-        codeDisplay.innerText = `<!DOCTYPE html>\n<html lang="en">\n<head>\n\t<meta charset="UTF-8">\n\t<meta name="viewport" content="width=device-width, initial-scale=1.0">\n\t<title>Document</title>\n\t<style>\n${css}\n\t</style>\n</head>\n<body>\n${html}\n</body>\n</html>`;
+        codeDisplay.innerText = `<!DOCTYPE html>\n<html lang="en">\n<head>\n\t<meta charset="UTF-8">\n\t<meta name="viewport" content="width=device-width, initial-scale=1.0">\n\t<title>Document</title>\n\t<style>\n${css}\n\t</style>\n</head>\n<body style="background-color: ${document.body.style.backgroundColor}; color: ${document.body.style.color};">\n${html}\n</body>\n</html>`;
     }
 
     function selectElement(element) {
@@ -160,7 +167,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
             if (inputType === 'input') {
                 propInput = document.createElement('input');
                 propInput.type = 'text';
-                propInput.value = window.getComputedStyle(element)[prop];
+                propInput.value = element.style[prop] || '';
             } else if (inputType === 'slider-input') {
                 propInput = document.createElement('input');
                 propInput.type = 'range';
@@ -169,18 +176,35 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 propInput = document.createElement('input');
                 propInput.type = 'color';
                 propInput.value = rgbToHex(window.getComputedStyle(element)[prop]);
+            } else if (inputType === 'text') {
+                propInput = document.createElement('input');
+                propInput.type = 'text';
+                propInput.value = element[prop] || '';
             }
 
             propInput.id = prop;
             propInput.className = '_input';
             propInput.addEventListener('input', (e) => {
                 const elementData = elementsList.find(el => el.id === selectedElement.id);
-                if (prop === 'borderRadius') {
-                    elementData.style[prop] = `${e.target.value}px`;
-                    selectedElement.style[prop] = `${e.target.value}px`;
+                if (prop === 'uid') {
+                    const newUid = e.target.value;
+                    if (!isUidUnique(newUid)) {
+                        alert("User-defined ID must be unique!");
+                        e.target.value = elementData.uid;
+                    } else {
+                        elementData.uid = newUid;
+                        updateUidMap(elementData.id, newUid);
+                    }
+                } else if (prop === 'uclass') {
+                    // Change User-defined class
+                    elementData.style[prop] = e.target.value;
                 } else {
                     elementData.style[prop] = e.target.value;
-                    selectedElement.style[prop] = e.target.value;
+                    if (prop === 'borderRadius') {
+                        element.style.borderRadius = `${e.target.value}px`;
+                    } else {
+                        element.style[prop] = e.target.value;
+                    }
                 }
             });
 
@@ -194,13 +218,56 @@ document.addEventListener('DOMContentLoaded', (event) => {
         return `#${result}`;
     }
 
+    function isUidUnique(uid) {
+        return !Array.from(userDefinedIdMap.values()).includes(uid);
+    }
+
+    function updateUidMap(realId, uid) {
+        for (const [key, value] of userDefinedIdMap.entries()) {
+            if (value === uid) {
+                userDefinedIdMap.delete(key);
+                break;
+            }
+        }
+        userDefinedIdMap.set(realId, uid);
+    }
+
+    function updateBodyProps() {
+        propsContainer.innerHTML = '';
+        const elementProps = props['body'];
+
+        Object.keys(elementProps).forEach(prop => {
+            const inputType = elementProps[prop];
+            const propLabel = document.createElement('label');
+            propLabel.innerText = prop;
+            propLabel.htmlFor = prop;
+
+            let propInput;
+            if (inputType === 'color input') {
+                propInput = document.createElement('input');
+                propInput.type = 'color';
+                propInput.value = rgbToHex(window.getComputedStyle(document.body)[prop]);
+            }
+
+            propInput.id = prop;
+            propInput.className = '_input';
+            propInput.addEventListener('input', (e) => {
+                document.body.style[prop] = e.target.value;
+            });
+
+            propsContainer.appendChild(propLabel);
+            propsContainer.appendChild(propInput);
+        });
+    }
+
     canvas.addEventListener('click', (e) => {
         if (e.target === canvas) {
             if (selectedElement) {
                 selectedElement.style.border = '1px solid #ccc';
                 selectedElement = null;
                 delDivButton.disabled = true;
-                propsContainer.innerHTML = '';
+                propsContainer.innerHTML = '<p>Properties</p>';
+                updateBodyProps();
             }
         }
     });
@@ -214,114 +281,106 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         element.addEventListener('mousedown', dragMouseDown);
         resizer.addEventListener('mousedown', resizeMouseDown);
-
-        element.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (selectedElement !== element) {
-                selectElement(element);
-            }
-        });
-
-        function dragMouseDown(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            offsetX = e.clientX - element.getBoundingClientRect().left;
-            offsetY = e.clientY - element.getBoundingClientRect().top;
-            document.addEventListener('mousemove', dragElement);
-            document.addEventListener('mouseup', closeDragElement);
-        }
-
-        function dragElement(e) {
-            e.preventDefault();
-            const elementData = elementsList.find(el => el.id === element.id);
-            const parentRect = element.parentElement.getBoundingClientRect();
-
-            let newLeft = e.clientX - offsetX;
-            let newTop = e.clientY - offsetY;
-
-            const elementRect = element.getBoundingClientRect();
-            if (newTop < parentRect.top) newTop = parentRect.top;
-            if (newLeft < parentRect.left) newLeft = parentRect.left;
-            if (newTop + elementRect.height > parentRect.bottom) newTop = parentRect.bottom - elementRect.height;
-            if (newLeft + elementRect.width > parentRect.right) newLeft = parentRect.right - elementRect.width;
-
-            elementData.style.left = `${newLeft - parentRect.left}px`;
-            elementData.style.top = `${newTop - parentRect.top}px`;
-            element.style.top = newTop - parentRect.top + "px";
-            element.style.left = newLeft - parentRect.left + "px";
-            renderProps(element);
-        }
-
-        function closeDragElement() {
-            document.removeEventListener('mousemove', dragElement);
-            document.removeEventListener('mouseup', closeDragElement);
-        }
-
-        function resizeMouseDown(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            document.addEventListener('mousemove', resizeElement);
-            document.addEventListener('mouseup', closeResizeElement);
-        }
-
-        function resizeElement(e) {
-            e.preventDefault();
-            const elementData = elementsList.find(el => el.id === element.id);
-            const parentRect = element.parentElement.getBoundingClientRect();
-
-            let newWidth = e.clientX - element.getBoundingClientRect().left + 3;
-            let newHeight = e.clientY - element.getBoundingClientRect().top + 3;
-
-            const maxWidth = parentRect.right - element.getBoundingClientRect().left;
-            const maxHeight = parentRect.bottom - element.getBoundingClientRect().top;
-
-            if (newWidth > maxWidth) newWidth = maxWidth;
-            if (newHeight > maxHeight) newHeight = maxHeight;
-
-            elementData.style.width = `${newWidth}px`;
-            elementData.style.height = `${newHeight}px`;
-            element.style.width = newWidth + "px";
-            element.style.height = newHeight + "px";
-            renderProps(element);
-        }
-
-        function closeResizeElement() {
-            document.removeEventListener('mousemove', resizeElement);
-            document.removeEventListener('mouseup', closeResizeElement);
-        }
+            function dragMouseDown(e) {
+        e.preventDefault();
+        offsetX = e.clientX - element.getBoundingClientRect().left;
+        offsetY = e.clientY - element.getBoundingClientRect().top;
+        document.addEventListener('mousemove', dragElement);
+        document.addEventListener('mouseup', closeDragElement);
     }
 
-    function findNode(tree, id) {
-        if (tree.id === id) {
-            return tree;
+    function dragElement(e) {
+        e.preventDefault();
+        const elementData = elementsList.find(el => el.id === element.id);
+        const parentRect = element.parentElement.getBoundingClientRect();
+
+        let newLeft = e.clientX - offsetX;
+        let newTop = e.clientY - offsetY;
+
+        const elementRect = element.getBoundingClientRect();
+        if (newTop < parentRect.top) newTop = parentRect.top;
+        if (newLeft < parentRect.left) newLeft = parentRect.left;
+        if (newTop + elementRect.height > parentRect.bottom) newTop = parentRect.bottom - elementRect.height;
+        if (newLeft + elementRect.width > parentRect.right) newLeft = parentRect.right - elementRect.width;
+
+        elementData.style.left = `${newLeft - parentRect.left}px`;
+        elementData.style.top = `${newTop - parentRect.top}px`;
+        element.style.top = newTop - parentRect.top + "px";
+        element.style.left = newLeft - parentRect.left + "px";
+        renderProps(element);
+    }
+
+    function closeDragElement() {
+        document.removeEventListener('mousemove', dragElement);
+        document.removeEventListener('mouseup', closeDragElement);
+    }
+
+    function resizeMouseDown(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        document.addEventListener('mousemove', resizeElement);
+        document.addEventListener('mouseup', closeResizeElement);
+    }
+
+    function resizeElement(e) {
+        e.preventDefault();
+        const elementData = elementsList.find(el => el.id === element.id);
+        const parentRect = element.parentElement.getBoundingClientRect();
+
+        let newWidth = e.clientX - element.getBoundingClientRect().left + 3;
+        let newHeight = e.clientY - element.getBoundingClientRect().top + 3;
+
+        const maxWidth = parentRect.right - element.getBoundingClientRect().left;
+        const maxHeight = parentRect.bottom - element.getBoundingClientRect().top;
+
+        if (newWidth > maxWidth) newWidth = maxWidth;
+        if (newHeight > maxHeight) newHeight = maxHeight;
+
+        elementData.style.width = `${newWidth}px`;
+        elementData.style.height = `${newHeight}px`;
+        element.style.width = newWidth + "px";
+        element.style.height = newHeight + "px";
+        renderProps(element);
+    }
+
+    function closeResizeElement() {
+        document.removeEventListener('mousemove', resizeElement);
+        document.removeEventListener('mouseup', closeResizeElement);
+    }
+}
+
+function findNode(tree, id) {
+    if (tree.id === id) {
+        return tree;
+    }
+    for (let i = 0; i < tree.children.length; i++) {
+        const result = findNode(tree.children[i], id);
+        if (result) {
+            return result;
         }
-        for (let i = 0; i < tree.children.length; i++) {
-            const result = findNode(tree.children[i], id);
+    }
+    return null;
+}
+
+function removeNode(tree, id) {
+    for (let i = 0; i < tree.children.length; i++) {
+        if (tree.children[i].id === id) {
+            tree.children.splice(i, 1);
+            return true;
+        } else {
+            const result = removeNode(tree.children[i], id);
             if (result) {
                 return result;
             }
         }
-        return null;
     }
+    return false;
+}
 
-    function removeNode(tree, id) {
-        for (let i = 0; i < tree.children.length; i++) {
-            if (tree.children[i].id === id) {
-                tree.children.splice(i, 1);
-                return true;
-            } else {
-                const result = removeNode(tree.children[i], id);
-                if (result) {
-                    return result;
-                }
-            }
-        }
-        return false;
-    }
+addDivButton.addEventListener('click', addElement);
+delDivButton.addEventListener('click', () => deleteElement(selectedElement.id));
+getCodeButton.addEventListener('click', getCode);
 
-    addDivButton.addEventListener('click', addElement);
-    delDivButton.addEventListener('click', () => deleteElement(selectedElement.id));
-    getCodeButton.addEventListener('click', getCode);
-
-    renderElements();
+updateBodyProps();
+renderElements();
 });
