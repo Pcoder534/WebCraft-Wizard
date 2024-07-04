@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const propsContainer = document.querySelector('._props');
     let selectedElement = null;
     let elementCounter = 0;
+    delDivButton.disabled = true;
 
     const props = {
         div: {
@@ -53,7 +54,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
         renderNode(elementsTree, canvas);
     }
 
-    function addElement(parentId) {
+    function addElement() {
+        let parentId;
+        if (selectedElement === null) parentId = "canvas";
+        else parentId = selectedElement.id;
         const newId = `element-${elementCounter++}`;
         const newElement = {
             id: newId,
@@ -69,7 +73,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 height: '100px',
                 backgroundColor: 'blue',
                 top: '10px',
-                left: '10px'
+                left: '10px',
+                borderRadius: '0px'
             }
         };
 
@@ -82,10 +87,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
 
     function deleteElement(id) {
+        deselectElement();
         removeNode(elementsTree, id);
         const index = elementsList.findIndex(el => el.id === id);
         if (index !== -1) elementsList.splice(index, 1);
-
         renderElements();
     }
 
@@ -102,7 +107,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
                     top: ${parseFloat(style.top) * 1.5}px;
                     left: ${parseFloat(style.left) * 1.5}px;
                     background-color: ${style.backgroundColor};
-                    border-radius: ${style.borderRadius || '0px'};
+                    border-radius: ${parseFloat(style.borderRadius || '0px') * 1.5}px;
                 }\n`;
 
                 html += `<div id="${node.id}">\n`;
@@ -130,6 +135,14 @@ document.addEventListener('DOMContentLoaded', (event) => {
         selectedElement.style.border = '2px solid red';
         delDivButton.disabled = false;
         renderProps(element);
+    }
+
+    function deselectElement() {
+        if (selectedElement === null) return;
+        selectedElement.style.border = '1px solid #ccc';
+        selectedElement = null;
+        delDivButton.disabled = true;
+        propsContainer.innerHTML = '<p>Properties</p>';
     }
 
     function renderProps(element) {
@@ -162,8 +175,13 @@ document.addEventListener('DOMContentLoaded', (event) => {
             propInput.className = '_input';
             propInput.addEventListener('input', (e) => {
                 const elementData = elementsList.find(el => el.id === selectedElement.id);
-                elementData.style[prop] = e.target.value;
-                selectedElement.style[prop] = e.target.value;
+                if (prop === 'borderRadius') {
+                    elementData.style[prop] = `${e.target.value}px`;
+                    selectedElement.style[prop] = `${e.target.value}px`;
+                } else {
+                    elementData.style[prop] = e.target.value;
+                    selectedElement.style[prop] = e.target.value;
+                }
             });
 
             propsContainer.appendChild(propLabel);
@@ -231,6 +249,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
             elementData.style.top = `${newTop - parentRect.top}px`;
             element.style.top = newTop - parentRect.top + "px";
             element.style.left = newLeft - parentRect.left + "px";
+            renderProps(element);
         }
 
         function closeDragElement() {
@@ -250,8 +269,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
             const elementData = elementsList.find(el => el.id === element.id);
             const parentRect = element.parentElement.getBoundingClientRect();
 
-            let newWidth = e.clientX - element.getBoundingClientRect().left;
-            let newHeight = e.clientY - element.getBoundingClientRect().top;
+            let newWidth = e.clientX - element.getBoundingClientRect().left + 3;
+            let newHeight = e.clientY - element.getBoundingClientRect().top + 3;
 
             const maxWidth = parentRect.right - element.getBoundingClientRect().left;
             const maxHeight = parentRect.bottom - element.getBoundingClientRect().top;
@@ -263,6 +282,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
             elementData.style.height = `${newHeight}px`;
             element.style.width = newWidth + "px";
             element.style.height = newHeight + "px";
+            renderProps(element);
         }
 
         function closeResizeElement() {
@@ -299,7 +319,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         return false;
     }
 
-    addDivButton.addEventListener('click', () => addElement('canvas'));
+    addDivButton.addEventListener('click', addElement);
     delDivButton.addEventListener('click', () => deleteElement(selectedElement.id));
     getCodeButton.addEventListener('click', getCode);
 
