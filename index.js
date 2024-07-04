@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const canvas = document.querySelector('._canvas');
     const addDivButton = document.getElementById('_adddiv');
     const delDivButton = document.getElementById('_deldiv');
+    const getCodeButton = document.getElementById('_code');
+    const codeDisplay = document.querySelector('._code');
     let selectedElement = null;
     let isDragging = false;
     let isResizing = false;
@@ -19,9 +21,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         element.addEventListener('click', (e) => {
             if (isDragging || isResizing) return;
             e.stopPropagation();
-            if (selectedElement === element) {
-                deselectElement();
-            } else {
+            if (selectedElement !== element) {
                 selectElement(element);
             }
         });
@@ -100,9 +100,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
         newDiv.style.backgroundColor = 'blue';
         newDiv.style.top = '10px';
         newDiv.style.left = '10px';
-
+        
         canvas.appendChild(newDiv);
         makeDraggableResizable(newDiv);
+        selectElement(newDiv);
     });
 
     delDivButton.addEventListener('click', () => {
@@ -112,6 +113,42 @@ document.addEventListener('DOMContentLoaded', (event) => {
             delDivButton.disabled = true;
         }
     });
+
+    getCodeButton.addEventListener('click', () => {
+        codeDisplay.innerHTML = generateCode();
+    });
+
+    function generateCode() {
+        let htmlCode = '<!DOCTYPE html>\n<html lang="en">\n<head>\n';
+        htmlCode += '\t<meta charset="UTF-8">\n';
+        htmlCode += '\t<meta name="viewport" content="width=device-width, initial-scale=1.0">\n';
+        htmlCode += '\t<title>Document</title>\n';
+        htmlCode += '\t<link rel="stylesheet" href="./style.css">\n';
+        htmlCode += '</head>\n<body>\n';
+
+        canvas.childNodes.forEach(element => {
+            if (element.nodeType === Node.ELEMENT_NODE) {
+                let top = parseFloat(element.style.top) * 1.5;
+                let left = parseFloat(element.style.left) * 1.5;
+                let width = parseFloat(element.style.width) * 1.5;
+                let height = parseFloat(element.style.height) * 1.5;
+
+                htmlCode += `\t<div class="${element.className}" style="`;
+                htmlCode += `position: absolute; `;
+                htmlCode += `top: ${top}px; `;
+                htmlCode += `left: ${left}px; `;
+                htmlCode += `width: ${width}px; `;
+                htmlCode += `height: ${height}px; `;
+                htmlCode += `background-color: ${element.style.backgroundColor};`;
+                htmlCode += `"></div>\n`;
+            }
+        });
+
+        htmlCode += '\t<script src="./index.js"></script>\n';
+        htmlCode += '</body>\n</html>';
+
+        return htmlCode;
+    }
 
     function deselectElement() {
         if (selectedElement) {
@@ -128,7 +165,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         delDivButton.disabled = false;
     }
 
-    document.addEventListener('click', (e) => {
+    canvas.addEventListener('click', (e) => {
         if (!e.target.classList.contains('draggable') && !e.target.classList.contains('resizer')) {
             deselectElement();
         }
