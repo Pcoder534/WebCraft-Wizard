@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const delDivButton = document.getElementById('_deldiv');
     const getCodeButton = document.getElementById('_code');
     const codeDisplay = document.querySelector('._code');
+    const colorInput = document.getElementById('_color');
+    const roundnessInput = document.getElementById('_roundness');
     let selectedElement = null;
     let isDragging = false;
     let isResizing = false;
@@ -29,6 +31,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         function dragMouseDown(e) {
             if (isResizing) return;
             e.preventDefault();
+            e.stopPropagation();
             initialX = e.clientX;
             initialY = e.clientY;
             offsetX = e.clientX - element.getBoundingClientRect().left;
@@ -40,20 +43,19 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         function dragElement(e) {
             e.preventDefault();
-
             let newLeft = e.clientX - offsetX;
             let newTop = e.clientY - offsetY;
 
-            const canvasRect = canvas.getBoundingClientRect();
+            const parentRect = element.parentElement.getBoundingClientRect();
             const elementRect = element.getBoundingClientRect();
 
-            if (newTop < canvasRect.top) newTop = canvasRect.top;
-            if (newLeft < canvasRect.left) newLeft = canvasRect.left;
-            if (newTop + elementRect.height > canvasRect.bottom) newTop = canvasRect.bottom - elementRect.height;
-            if (newLeft + elementRect.width > canvasRect.right) newLeft = canvasRect.right - elementRect.width;
+            if (newTop < parentRect.top) newTop = parentRect.top;
+            if (newLeft < parentRect.left) newLeft = parentRect.left;
+            if (newTop + elementRect.height > parentRect.bottom) newTop = parentRect.bottom - elementRect.height;
+            if (newLeft + elementRect.width > parentRect.right) newLeft = parentRect.right - elementRect.width;
 
-            element.style.top = newTop - canvasRect.top + "px";
-            element.style.left = newLeft - canvasRect.left + "px";
+            element.style.top = newTop - parentRect.top + "px";
+            element.style.left = newLeft - parentRect.left + "px";
         }
 
         function closeDragElement() {
@@ -65,20 +67,21 @@ document.addEventListener('DOMContentLoaded', (event) => {
         function resizeMouseDown(e) {
             isResizing = true;
             e.preventDefault();
+            e.stopPropagation();
             document.addEventListener('mousemove', resizeElement);
             document.addEventListener('mouseup', closeResizeElement);
         }
 
         function resizeElement(e) {
             e.preventDefault();
-            const canvasRect = canvas.getBoundingClientRect();
+            const parentRect = element.parentElement.getBoundingClientRect();
             const elementRect = element.getBoundingClientRect();
 
             let newWidth = e.clientX - elementRect.left;
             let newHeight = e.clientY - elementRect.top;
 
-            if (elementRect.left + newWidth > canvasRect.right) newWidth = canvasRect.right - elementRect.left;
-            if (elementRect.top + newHeight > canvasRect.bottom) newHeight = canvasRect.bottom - elementRect.top;
+            if (elementRect.left + newWidth > parentRect.right) newWidth = parentRect.right - elementRect.left;
+            if (elementRect.top + newHeight > parentRect.bottom) newHeight = parentRect.bottom - elementRect.top;
 
             element.style.width = newWidth + "px";
             element.style.height = newHeight + "px";
@@ -100,15 +103,15 @@ document.addEventListener('DOMContentLoaded', (event) => {
         newDiv.style.backgroundColor = 'blue';
         newDiv.style.top = '10px';
         newDiv.style.left = '10px';
-        
+
         if (selectedElement) {
             selectedElement.appendChild(newDiv);
         } else {
             canvas.appendChild(newDiv);
         }
-        
-        makeDraggableResizable(newDiv);
+
         selectElement(newDiv);
+        makeDraggableResizable(newDiv);
     });
 
     delDivButton.addEventListener('click', () => {
@@ -120,74 +123,72 @@ document.addEventListener('DOMContentLoaded', (event) => {
     });
 
     getCodeButton.addEventListener('click', () => {
-        codeDisplay.innerHTML = generateCode();
-    });
-
-    function generateCode() {
-        let htmlCode = '<!DOCTYPE html>\n<html lang="en">\n<head>\n';
-        htmlCode += '\t<meta charset="UTF-8">\n';
-        htmlCode += '\t<meta name="viewport" content="width=device-width, initial-scale=1.0">\n';
-        htmlCode += '\t<title>Document</title>\n';
-        htmlCode += '\t<link rel="stylesheet" href="./style.css">\n';
-        htmlCode += '</head>\n<body>\n';
-
-        function generateHTML(element) {
-            let top = parseFloat(element.style.top) * 1.5;
-            let left = parseFloat(element.style.left) * 1.5;
-            let width = parseFloat(element.style.width) * 1.5;
-            let height = parseFloat(element.style.height) * 1.5;
-
-            let html = `\t<div class="${element.className}" style="`;
-            html += `position: absolute; `;
-            html += `top: ${top}px; `;
-            html += `left: ${left}px; `;
-            html += `width: ${width}px; `;
-            html += `height: ${height}px; `;
-            html += `background-color: ${element.style.backgroundColor};`;
-            html += `">`;
-
-            element.childNodes.forEach(child => {
-                if (child.nodeType === Node.ELEMENT_NODE) {
-                    html += '\n' + generateHTML(child);
+        let html = '';
+        let css = '';
+        const elements = Array.from(canvas.children);
+        let index = 0;
+        function processElement(el) {
+            const rect = el.getBoundingClientRect();
+            css += `.draggable-${index} {
+                position: absolute;
+                width: ${rect.width * 1.5}px;
+                height: ${rect.height * 1.5}px;
+                top: ${(rect.top - canvas.getBoundingClientRect().top) * 1.5}px;
+                left: ${(rect.left - canvas.getBoundingClientRect().left) * 1.5}px;
+                background-color: ${el.style.backgroundColor};
+                border-radius: ${el.style.borderRadius || '0px'};
+            }\n`;
+            html+=`<div class="draggable-${index}">\n`;
+            index++;
+            Array.from(el.children).forEach(child => {
+                if(!child.classList.contains("resizer")){
+                    processElement(child);
                 }
             });
-
-            html += '</div>\n';
-            return html;
+            html+= `</div>\n`;
         }
 
-        canvas.childNodes.forEach(element => {
-            if (element.nodeType === Node.ELEMENT_NODE) {
-                htmlCode += generateHTML(element);
-            }
+        elements.forEach(el => {
+                if(!el.classList.contains("resizer"))processElement(el);
         });
-
-        htmlCode += '\t<script src="./index.js"></script>\n';
-        htmlCode += '</body>\n</html>';
-
-        return htmlCode;
-    }
-
-    function deselectElement() {
-        if (selectedElement) {
-            selectedElement.style.border = '1px solid #ccc';
-            selectedElement = null;
-            delDivButton.disabled = true;
-        }
-    }
+        codeDisplay.innerText = `<!DOCTYPE html>\n<html lang="en">\n<head>\n\t<meta charset="UTF-8">\n\t<meta name="viewport" content="width=device-width, initial-scale=1.0">\n\t<title>Document</title>\n\t<style>\n${css}\n\t</style>\n</head>\n<body>\n${html}\n</body>\n</html>`;
+    });
 
     function selectElement(element) {
-        deselectElement();
+        if (selectedElement) {
+            selectedElement.style.border = '1px solid #ccc';
+        }
         selectedElement = element;
-        selectedElement.style.border = '2px dashed red';
+        selectedElement.style.border = '2px solid red';
         delDivButton.disabled = false;
+        colorInput.value = rgbToHex(window.getComputedStyle(element).backgroundColor);
+        roundnessInput.value = parseInt(window.getComputedStyle(element).borderRadius) || 0;
     }
 
-    canvas.addEventListener('click', (e) => {
-        if (!e.target.classList.contains('draggable') && !e.target.classList.contains('resizer')) {
-            deselectElement();
+    function rgbToHex(rgb) {
+        const result = rgb.match(/\d+/g).map((x) => parseInt(x).toString(16).padStart(2, '0')).join('');
+        return `#${result}`;
+    }
+
+    colorInput.addEventListener('input', (e) => {
+        if (selectedElement) {
+            selectedElement.style.backgroundColor = e.target.value;
         }
     });
 
-    delDivButton.disabled = true;
+    roundnessInput.addEventListener('input', (e) => {
+        if (selectedElement) {
+            selectedElement.style.borderRadius = `${e.target.value}px`;
+        }
+    });
+
+    canvas.addEventListener('click', (e) => {
+        if (e.target === canvas) {
+            if (selectedElement) {
+                selectedElement.style.border = '1px solid #ccc';
+                selectedElement = null;
+                delDivButton.disabled = true;
+            }
+        }
+    });
 });
