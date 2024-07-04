@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', (event) => {
     const canvas = document.querySelector('._canvas');
     const addDivButton = document.getElementById('_adddiv');
+    const delDivButton = document.getElementById('_deldiv');
     let selectedElement = null;
     let isDragging = false;
     let isResizing = false;
@@ -104,10 +105,19 @@ document.addEventListener('DOMContentLoaded', (event) => {
         makeDraggableResizable(newDiv);
     });
 
+    delDivButton.addEventListener('click', () => {
+        if (selectedElement) {
+            selectedElement.remove();
+            selectedElement = null;
+            delDivButton.disabled = true;
+        }
+    });
+
     function deselectElement() {
         if (selectedElement) {
             selectedElement.style.border = '1px solid #ccc';
             selectedElement = null;
+            delDivButton.disabled = true;
         }
     }
 
@@ -115,6 +125,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         deselectElement();
         selectedElement = element;
         selectedElement.style.border = '2px dashed red';
+        delDivButton.disabled = false;
     }
 
     document.addEventListener('click', (e) => {
@@ -122,4 +133,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
             deselectElement();
         }
     });
+
+    delDivButton.disabled = true;
 });
