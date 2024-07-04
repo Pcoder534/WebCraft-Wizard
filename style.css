@@ -1,21 +1,59 @@
 body {
     background-color: rgb(28, 28, 28);
-    display: grid;
-    grid-template-columns: 4fr 1fr;
-    grid-template-rows: 100vh auto;
 }
 
 ._canvas {
+    position: absolute;
     background-color: rgb(38, 38, 38);
     border: 1px solid black;
-    width: 100%;
+    left: 0px;
+    width: 1130px;
     height: 100%;
+    overflow: auto;
+}
+#work-area {
+    position: absolute;
+    background-color: rgb(79, 79, 79);
+    left: 0px;
+    width: 1140px;
+    height: 95%;
+}
+#canvas-resizer {
+    position: absolute;
+    background-color: rgb(21, 21, 21);
+    left: 1132px;
+    height: 100%;
+    width:8px;
+    border-radius: 2px;
 }
 
+#canvas-resizer-green {
+    position: absolute;
+    display: none;
+    background-color: rgb(16, 239, 0);
+    height:100%;
+    width: 5px;
+    left: 1px;
+    border-radius: 2px;
+}
+
+#canvas-resizer-inner {
+    position: absolute;
+    background-color: rgb(98, 98, 98);
+    top:45%;
+    height:10%;
+    width: 3px;
+    left: 2px;
+    border-radius: 2px;
+}
 ._toolbox {
+    position: absolute;
     background-color: black;
     border-radius: 10px;
-    padding: 20px;
+    padding: 10px;
+    height: 100%;
+    width: auto;
+    left: 1140px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -24,10 +62,11 @@ body {
 }
 ._buttons {
     background-color: black;
-    border-radius: 10px;
-    padding: 20px;
-    display: flex;
-    flex-direction: row;
+    /* border-radius: 10px; */
+    padding: 10px;
+    display: grid;
+    grid-template-columns: auto auto auto;
+    grid-template-rows: auto auto;
     justify-content: center;
     align-items: center;
     box-sizing: border-box;
@@ -35,32 +74,37 @@ body {
 ._props {
     background-color: rgb(33, 33, 33);
     border-radius: 10px;
-    height: 70%;
-    width: 100%;
+    min-height:70%;
+    width:100%;
     padding: 10px;
     display: flex;
     flex-direction: column;
+    flex-wrap: nowrap;
     justify-content: top;
     align-items: center;
     box-sizing: border-box;
-    color: #fff;
-    font-size: 20px;
+    color:#fff;
+    font-size: 14px;
 }
 ._button, ._input {
     border: none;
     border-radius: 10px;
     position: relative;
     display: block;
-    margin-left: 10px;
+    margin: 5px;
     padding: 10px;
-    width: 40%;
-    height: 50px;
-    font-size: 16px;
+    font-size: 13px;
+    min-width: 70px;
+    height:40px;
 }
-
+._input {
+    height : 1.5rem;
+    width:50%;
+}
 ._button {
     background-color: green;
     color: white;
+    width: 40%;
 }
 
 ._button:active {
@@ -73,22 +117,24 @@ body {
     box-sizing: border-box;
 }
 
-.resizer {
+#_resizer {
     width: 10px;
     height: 10px;
-    background-color: #fff;
-    border: 1px solid #000;
+    background-color: white;
+    border: 1px solid black ; 
     position: absolute;
-    right: 0;
-    bottom: 0;
     cursor: se-resize;
+    display: none; 
+    z-index: 2;
 }
 
-._code {
+
+#_codeOutput {
+    position: absolute;
     background-color: white;
     padding: 10px;
     border-radius: 10px;
-    grid-column: span 2;
+    top:97%;
     color: black;
     white-space: pre-wrap;
 }

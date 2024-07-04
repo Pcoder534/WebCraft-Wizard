@@ -7,7 +7,14 @@
     <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-    <div class="_canvas">
+    <div id="work-area">
+        <div class="_canvas">
+            
+        </div>
+        <div  id="canvas-resizer">
+            <div id="canvas-resizer-inner"></div>
+            <div id="canvas-resizer-green"></div>
+        </div>
     </div>
     <div class="resizer" id="_resizer"></div>
     <div class="_toolbox" >
@@ -15,14 +22,15 @@
             <button id="_adddiv" class="_button">add div</button>
             <button id="_addimg" class="_button">Add Img</button>
             <button id="_addp" class="_button">Add P</button>
-            <button id="_deldiv" class="_button">del div</button>
+            <button id="_deldiv" class="_button">delete</button>
             <button id="_code" class="_button">get code</button>
+            <button id="_resp" class="_button">resp</button>
         </div>
         <div class="_props">
             <p>Properties</p>
         </div>
     </div>
-    <div class="_code"></div>
+    <div id="_codeOutput"></div>
     <script type="module" src="./main.js"></script>
 </body>
 </html>

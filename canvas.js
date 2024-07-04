@@ -1,5 +1,5 @@
 import { makeDraggableResizable, selectElement, deselectElement } from './elements.js';
-import { rgbToHex } from './utils.js';
+import { rgbToHex, percentageToPixel, pixelToPercentage } from './utils.js';
 
 
 let elementCounter = 0;
@@ -17,7 +17,6 @@ export function renderElements() {
             Object.keys(attr).forEach(prop => {
                 element.setAttribute(prop, attr[prop]);
             });
-            element.style.position = 'absolute';
             const style = window.elementsList.find(el => el.id === node.id).style;
             Object.keys(style).forEach(prop => {
                 element.style[prop] = style[prop];
@@ -81,6 +80,8 @@ export function addElement(type) {
         parent: parentId,
         children: []
     };
+    const parentNode = findNode(window.elementsTree, parentId);
+    parentNode.children.push(newElement);
 
     const newElementStyle = {
         id: newId,
@@ -89,18 +90,32 @@ export function addElement(type) {
         },
         style: {}
     };
+
     const propAttr = window.props[type].attr;
     const propStyle = window.props[type].style;
-
+    newElementStyle.style['position'] = 'absolute';
     Object.keys(propAttr).forEach(prop => {
-        if(propAttr[prop]!='text')newElementStyle.attr[prop] = window.defaults[propAttr[prop]];
+        if(propAttr[prop].type!='text')newElementStyle.attr[prop] = propAttr[prop].default;
     });
+    
+    // if(parentId != 'canvas' && window.selectedElement.style.display === 'flex'){
+    //     newElementStyle.style['flex-basis'] = '100px';
+    //     newElementStyle.style['line-height'] = '100px';
+    //     newElementStyle.style['background-color'] = 'green';
+    //     window.elementsList.push(newElementStyle);
+    //     window.userIdMap.set(newId, newId);
+
+    //     renderElements();
+    //     selectElement(document.getElementById(newId));
+    //     return;
+    // }
     Object.keys(propStyle).forEach(prop => {
-        newElementStyle.style[prop] = window.defaults[propStyle[prop]];
+        if(propStyle[prop].type === 'radio'){
+            newElementStyle.style[prop] = propStyle[prop].options[0];
+        }
+        else newElementStyle.style[prop] = propStyle[prop].default;
     });
 
-    const parentNode = findNode(window.elementsTree, parentId);
-    parentNode.children.push(newElement);
     window.elementsList.push(newElementStyle);
     window.userIdMap.set(newId, newId);
 
@@ -122,6 +137,7 @@ export function deleteElement(id) {
 export function getCode() {
     let html = '';
     let css = '';
+    makeResponsive();
     function processNode(node) {
         if (node.id !== 'canvas') {
             const element = window.elementsList.find(el => el.id === node.id);
@@ -131,7 +147,8 @@ export function getCode() {
             Object.keys(style).forEach(prop => {
                 const value = style[prop];
                 const inputType = window.props[node.type].style[prop];
-                if(inputType === 'input')css+=`\t${prop}: ${parseFloat(value) * 1.5}px;\n`;
+                if(prop === 'left' || prop === 'width')css+=`\t${prop}: ${parseFloat(value)}%;\n`;
+                else if(inputType === 'input')css+=`\t${prop}: ${parseFloat(value) * 1.5}px;\n`;
                 else if(inputType === 'color input')css+=`\t${prop}: ${value};\n`;
                 else css+=`\t${prop}: ${value};\n`;
             });
@@ -157,7 +174,7 @@ export function getCode() {
     }
 
     processNode(window.elementsTree);
-
+    percentageToPixel();
     window.codeDisplay.innerText = `<!DOCTYPE html>\n<html lang="en">\n<head>\n\t<meta charset="UTF-8">\n\t<meta name="viewport" content="width=device-width, initial-scale=1.0">\n\t<title>Document</title>\n\t<style>\n${css}\n\t</style>\n</head>\n<body>\n${html}\n</body>\n</html>`;
 }
 
@@ -191,4 +208,45 @@ export function renderBodyProps() {
         propsContainer.appendChild(propLabel);
         propsContainer.appendChild(propInput);
     });
+}
+export function makeResponsive(){
+    deselectElement();
+    pixelToPercentage();
+    renderElements();
+}
+export function makeCanvasResizable(){
+    const workAreaRect = window.workArea.getBoundingClientRect();
+    const canvasResizerColor = document.getElementById('canvas-resizer-green');
+    window.canvasResizer.addEventListener('mousedown', resizeCanvasMouseDown);
+    window.canvasResizer.addEventListener('mouseover',makeColorVisible);
+    window.canvasResizer.addEventListener('mouseleave',makeColorInvisible);
+    function resizeCanvasMouseDown(e){
+        e.preventDefault();
+        e.stopPropagation();
+        makeResponsive();
+        document.addEventListener('mousemove', resizeCanvas);
+        document.addEventListener('mouseup',stopResizeCanvas);
+    }
+    function resizeCanvas(e){
+        let diff = workAreaRect.right - e.clientX;
+        if(diff < 0 )diff = 0;
+        window.canvas.style.left = `${diff}px`;
+        let newWidth = (e.clientX - diff);
+        let newLeft = (e.clientX - 3);
+        if(newLeft > 1132)newleft = 1132;
+        if(newWidth > 1130)newWidth = 1130;
+        window.canvas.style.width = `${newWidth}px`;
+        window.canvasResizer.style.left = `${newLeft}px`;
+    }
+    function stopResizeCanvas(){
+        percentageToPixel();
+        document.removeEventListener('mousemove', resizeCanvas);
+        document.removeEventListener('mouseup', stopResizeCanvas);
+    }
+    function makeColorVisible(){
+        canvasResizerColor.style.display = 'block';
+    }
+    function makeColorInvisible(){
+        canvasResizerColor.style.display = 'none';
+    }
 }

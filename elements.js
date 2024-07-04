@@ -1,4 +1,5 @@
 import { rgbToHex } from './utils.js';
+import { renderBodyProps } from './canvas.js';
 
 export function selectElement(element) {
     if (window.selectedElement) {
@@ -23,6 +24,7 @@ export function deselectElement() {
     window.delDivButton.disabled = true;
     window.propsContainer.innerHTML = '<p>Properties</p>';
     window.resizer.style.display = 'none';
+    renderBodyProps();
 }
 
 export function makeDraggableResizable(element) {
@@ -123,15 +125,22 @@ export function renderProps(element) {
     const elementProps=null;
 
     Object.keys(elementAttr).forEach(prop => {
-        const inputType = elementAttr[prop];
+        const inputType = elementAttr[prop].type;
         const propLabel = document.createElement('label');
         propLabel.innerText = prop;
         propLabel.htmlFor = prop;
         
         let propInput;
-        propInput = document.createElement('input');
-        propInput.type = 'text';
-        propInput.value = element.getAttribute(prop);
+        if(inputType === 'text' || inputType === 'input'|| inputType === 'src'){
+            propInput = document.createElement('input');
+            propInput.type = 'text';
+            propInput.value = element.getAttribute(prop);
+        }
+        else if(inputType === 'checkbox'){
+            propInput = document.createElement('input');
+            propInput.type = 'checkbox';
+            propInput.value = element.getAttribute(prop);
+        }
 
         propInput.id = prop;
         propInput.className = '_input';
@@ -155,7 +164,7 @@ export function renderProps(element) {
     });
 
     Object.keys(elementStyle).forEach(prop => {
-        const inputType = elementStyle[prop];
+        const inputType = elementStyle[prop].type;
         const propLabel = document.createElement('label');
         propLabel.innerText = prop;
         propLabel.htmlFor = prop;
@@ -173,13 +182,35 @@ export function renderProps(element) {
             propInput = document.createElement('input');
             propInput.type = 'color';
             propInput.value = rgbToHex(window.getComputedStyle(element)[prop]);
+        } else if(inputType === 'radio'){
+            propInput = document.createElement('div');
+            elementStyle[prop].options.forEach(option => {
+                let eachInput = document.createElement('input');
+                let eachLabel = document.createElement('label');
+                eachLabel.innerText = option;
+                eachLabel.htmlFor = option;
+                eachInput.type = 'radio';
+                eachInput.name = 'prop';
+                eachInput.value = option;
+
+                if(element.style[prop] === option)eachInput.checked = true;
+                eachInput.addEventListener('click',()=>{
+                    const elementData = window.elementsList.find(el => el.id === window.selectedElement.id);
+                    elementData.style[prop] = option;
+                    window.selectedElement.style[prop] = option;
+                });
+                propInput.appendChild(eachLabel);
+                propInput.appendChild(eachInput);
+            });
+            propsContainer.appendChild(propLabel);
+            propsContainer.appendChild(propInput);
+            return;
         }
 
         propInput.id = prop;
         propInput.className = '_input';
         propInput.addEventListener('input', (e) => {
             const elementData = window.elementsList.find(el => el.id === window.selectedElement.id);
-            //elementData[prop] = e.target.value;
             if(inputType === 'slider-input') {
                 elementData.style[prop] = `${e.target.value}px`;
                 window.selectedElement.style[prop] = `${e.target.value}px`;
