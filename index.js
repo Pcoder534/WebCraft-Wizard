@@ -101,7 +101,12 @@ document.addEventListener('DOMContentLoaded', (event) => {
         newDiv.style.top = '10px';
         newDiv.style.left = '10px';
         
-        canvas.appendChild(newDiv);
+        if (selectedElement) {
+            selectedElement.appendChild(newDiv);
+        } else {
+            canvas.appendChild(newDiv);
+        }
+        
         makeDraggableResizable(newDiv);
         selectElement(newDiv);
     });
@@ -126,21 +131,34 @@ document.addEventListener('DOMContentLoaded', (event) => {
         htmlCode += '\t<link rel="stylesheet" href="./style.css">\n';
         htmlCode += '</head>\n<body>\n';
 
+        function generateHTML(element) {
+            let top = parseFloat(element.style.top) * 1.5;
+            let left = parseFloat(element.style.left) * 1.5;
+            let width = parseFloat(element.style.width) * 1.5;
+            let height = parseFloat(element.style.height) * 1.5;
+
+            let html = `\t<div class="${element.className}" style="`;
+            html += `position: absolute; `;
+            html += `top: ${top}px; `;
+            html += `left: ${left}px; `;
+            html += `width: ${width}px; `;
+            html += `height: ${height}px; `;
+            html += `background-color: ${element.style.backgroundColor};`;
+            html += `">`;
+
+            element.childNodes.forEach(child => {
+                if (child.nodeType === Node.ELEMENT_NODE) {
+                    html += '\n' + generateHTML(child);
+                }
+            });
+
+            html += '</div>\n';
+            return html;
+        }
+
         canvas.childNodes.forEach(element => {
             if (element.nodeType === Node.ELEMENT_NODE) {
-                let top = parseFloat(element.style.top) * 1.5;
-                let left = parseFloat(element.style.left) * 1.5;
-                let width = parseFloat(element.style.width) * 1.5;
-                let height = parseFloat(element.style.height) * 1.5;
-
-                htmlCode += `\t<div class="${element.className}" style="`;
-                htmlCode += `position: absolute; `;
-                htmlCode += `top: ${top}px; `;
-                htmlCode += `left: ${left}px; `;
-                htmlCode += `width: ${width}px; `;
-                htmlCode += `height: ${height}px; `;
-                htmlCode += `background-color: ${element.style.backgroundColor};`;
-                htmlCode += `"></div>\n`;
+                htmlCode += generateHTML(element);
             }
         });
 
