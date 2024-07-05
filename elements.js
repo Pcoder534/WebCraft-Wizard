@@ -1,13 +1,13 @@
 import { rgbToHex } from './utils.js';
 import { renderBodyProps, renderElements } from './canvas.js';
-import { elementsTree } from './constants.js';
+import { showGrids, count, removeGrids, renderPointers, changedRows, changedCols, makeDraggableInGrid, makeResizableInGrid } from './grid.js';
+import { changeQueries } from './mediaQueries.js';
 
 export function selectElement(element) {
-    if (window.selectedElement) {
-        window.selectedElement.style.border = '1px solid #ccc';
-    }
+    deselectElement();
     window.selectedElement = element;
     window.selectedElement.style.border = '2px dashed red';
+    if(element.style.display === 'grid'&&element.getAttribute('showgrids')==='true')showGrids(element);
     window.delDivButton.disabled = false;
     renderProps(element); 
     window.resizer.style.display = 'block';
@@ -15,20 +15,32 @@ export function selectElement(element) {
     const parentRect = element.parentElement.getBoundingClientRect();
     window.resizer.style.left = `${rect.right - 13}px`;
     window.resizer.style.top = `${rect.bottom - 13}px`;
-    window.resizer.addEventListener('mousedown',resizeMouseDown);
+    if(window.selectedElement.parentElement.style.display === 'grid'){
+        window.resizer.removeEventListener('mousedown',resizeMouseDown);
+        makeResizableInGrid(window.selectedElement);
+    }
+    else {
+        window.resizer.addEventListener('mousedown',resizeMouseDown);
+    }
 }
 
 export function deselectElement() {
     if (window.selectedElement === null) return;
     window.selectedElement.style.border = '1px solid #ccc';
+    const element = window.selectedElement;
     window.selectedElement = null;
     window.delDivButton.disabled = true;
     window.propsContainer.innerHTML = '<p>Properties</p>';
     window.resizer.style.display = 'none';
+    if(element.style.display === 'grid')removeGrids(element);
     renderBodyProps();
 }
 
 export function makeDraggableResizable(element) {
+    if(element.parentElement.style.display === 'grid'){
+        makeDraggableInGrid(element);
+        return;
+    }
     let offsetX = 0, offsetY = 0;
 
     element.addEventListener('mousedown', dragMouseDown);
@@ -70,7 +82,7 @@ export function makeDraggableResizable(element) {
 
         window.resizer.style.left = `${ elementRect.right - 13}px`;
         window.resizer.style.top = `${ elementRect.bottom - 13}px`;
-
+        changeQueries();
         renderProps(element);
     }
 
@@ -108,7 +120,8 @@ function resizeElement(e) {
 
     window.resizer.style.left = `${elementRect.right - 13}px`;
     window.resizer.style.top = `${elementRect.bottom- 13}px`;
-
+    if(window.selectedElement.style.display === 'grid' && window.selectedElement.getAttribute('showgrids')==='true') renderPointers(window.selectedElement);
+    changeQueries();
     renderProps(window.selectedElement);
 }
 
@@ -123,8 +136,8 @@ export function renderProps(element) {
     const props = window.props;
     const elementAttr = props[elementType].attr;
     let elementStyle = props[elementType].style;
-    if(element.parentElement.style.display === 'flex')elementStyle = props[elementType].flexParent;
-
+    if(element.parentElement.style.display === 'flex')elementStyle = props[elementType].flexChild;
+    if(element.parentElement.style.display === 'grid')elementStyle = props[elementType].gridChild;
     const elementProps=null;
     Object.keys(elementAttr).forEach(prop => {
         const inputType = elementAttr[prop].type;
@@ -167,7 +180,11 @@ export function renderProps(element) {
         elementStyle = props[elementType].flex;
         Object.keys(elementStyle).forEach(prop => addProps(prop));
     }
-    function addProps(prop){
+    else if(element.style.display === 'grid'){
+        elementStyle = props[elementType].grid;
+        Object.keys(elementStyle).forEach(prop => addProps(prop,true));
+    }
+    function addProps(prop,grid = false){
         if(!elementStyle[prop].type)return;
         const inputType = elementStyle[prop].type;
         const propLabel = document.createElement('label');
@@ -182,7 +199,7 @@ export function renderProps(element) {
         } else if (inputType === 'slider-input') {
             propInput = document.createElement('input');
             propInput.type = 'range';
-            propInput.value = parseInt(window.getComputedStyle(element)[prop]) || 0;
+            propInput.value = parseInt(window.getComputedStyle(element)[prop])||0;
             propLabel.htmlFor = prop;
         } else if (inputType === 'color input') {
             propInput = document.createElement('input');
@@ -205,7 +222,14 @@ export function renderProps(element) {
                     const elementData = window.elementsList.find(el => el.id === window.selectedElement.id);
                     elementData.style[prop] = option;
                     window.selectedElement.style[prop] = option;
-                    renderProps(element);
+                    if(window.selectedElement.style.display === 'grid'){
+                        elementData.rowFixed = new Array(1).fill(false);
+                        elementData.colFixed = new Array(1).fill(false);
+                        showGrids(element);
+                    }
+                    renderElements();
+                    selectElement(document.getElementById(element.id));
+                    renderProps(window.selectedElement);
                 });
                 propInput.appendChild(eachLabel);
                 propInput.appendChild(eachInput);
@@ -224,26 +248,61 @@ export function renderProps(element) {
             });
             propInput.value = window.getComputedStyle(element)[prop];
             propLabel.htmlFor = prop;
-        } else if(inputType === 'number'){
+        } else if(inputType === 'number'&&!grid){
             propInput = document.createElement('input');
             propInput.type = 'number';
             propInput.value = window.getComputedStyle(element)[prop];
             propLabel.htmlFor = prop;
+        } else if(grid && inputType === 'number'){
+            propInput = document.createElement('input');
+            propInput.type = 'number';
+            prop = (prop === 'rows')? 'grid-template-rows':'grid-template-columns';
+            propInput.value = count(window.getComputedStyle(element)[prop]);
+        } else if(grid && prop === 'showgrids'){
+            propInput = document.createElement('input');
+            propInput.type = 'checkbox';
+            if(element.getAttribute(prop) === 'true')propInput.checked = true;
         }
 
         propInput.id = prop;
         propInput.classList.add('_input');
-        propInput.addEventListener('input', (e) => {
+        if(prop === 'showgrids'){
+            propInput.addEventListener('change', (e) => {
+                const elementData = window.elementsList.find(el => el.id === window.selectedElement.id);
+                if(propInput.checked === true){
+                    element.setAttribute(prop, 'true');
+                    elementData.attr[prop] = 'true';
+                    showGrids(element);
+                }
+                else {
+                    element.setAttribute(prop, 'false');
+                    elementData.attr[prop] = 'false';
+                    removeGrids(element);
+                }
+                changeQueries();
+            });
+        }
+        else {propInput.addEventListener('input', (e) => {
             const elementData = window.elementsList.find(el => el.id === window.selectedElement.id);
             if(inputType === 'slider-input') {
                 elementData.style[prop] = `${e.target.value}px`;
                 window.selectedElement.style[prop] = `${e.target.value}px`;
+            } else if(grid && inputType === 'number'){
+                let str = '';
+                for(let i=0;i<e.target.value;i++){str+='auto ';}
+                elementData.style[prop] = str;
+                window.selectedElement.style[prop] = str;
+                document.getElementById('showgrids').checked = true;
+                element.setAttribute('showgrids', 'true');
+                elementData.attr['showgrids'] = 'true';
+                if(prop === 'rows')changedRows(element);
+                else changedCols(element);
             } else {
                 elementData.style[prop] = e.target.value;
                 window.selectedElement.style[prop] = e.target.value;
             }
-            
-        });
+            changeQueries();
+        });}
         let propDiv = document.createElement('div');
         propDiv.className = 'propDiv';
         propDiv.appendChild(propLabel);
@@ -253,13 +312,19 @@ export function renderProps(element) {
     }
 }
 export function focusDefocus(){
-    if(window.isFocused){renderElements();window.isFocused=false;return;}
+    if(window.isFocused){
+        renderElements();
+        window.isFocused=false;
+        window.focusButton.innerText = 'Focus';
+        return;
+    }
     function makeInvisible(node) {
-        if(node.id != 'canvas'&&selectedElement.id != node.id)document.getElementById(node.id).style.visibility = 'hidden';
+        if(node.id != 'canvas'&&(!window.selectedElement||window.selectedElement.id != node.id))document.getElementById(node.id).style.visibility = 'hidden';
         node.children.forEach(childNode => {
             makeInvisible(childNode);
         });
     }
     makeInvisible(window.elementsTree);
     window.isFocused = true;
+    window.focusButton.innerText = 'defocus';
 }

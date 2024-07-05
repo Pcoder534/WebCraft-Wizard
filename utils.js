@@ -9,12 +9,15 @@ export function pixelToPercentage(){
     function changeStyle(node, parentEl) {
         let element = document.getElementById(node.id);
         if(node.id === 'canvas') element = window.canvas;
-        if(parentEl.style.display === 'flex')return;
+        if(element.style.display === 'none') return;
+        if(parentEl.style.display === 'flex'||parentEl.style.display=='none')return;
         node.children.forEach(childNode => {
             changeStyle(childNode, element);
         });
         if (node.id !== 'canvas'&& parentEl.style.display!='flex') {
-            const style = window.elementsList.find(el => el.id === node.id).style;
+            const elementData = window.elementsList.find(el => el.id === node.id);
+            if(!elementData)return;
+            const style = elementData.style;
             const parentRect = parentEl.getBoundingClientRect();
 
             if(style.left&&style.left.charAt(style.left.length-1)!='%')style.left = `${(parseFloat(style.left)/parseFloat(parentRect.width))*100}%`;
@@ -27,11 +30,15 @@ export function percentageToPixel(){
     function changeStyle(node, parentEl) {
         let element = document.getElementById(node.id);
         if(node.id === 'canvas') element = window.canvas;
+        if(element.style.display === 'none') return;
+        if(parentEl.style.display === 'flex'||parentEl.style.display=='none')return;
         node.children.forEach(childNode => {
             changeStyle(childNode, element);
         });
         if (node.id !== 'canvas') {
-            const style = window.elementsList.find(el => el.id === node.id).style;
+            const elementData = window.elementsList.find(el => el.id === node.id);
+            if(!elementData)return;
+            const style = elementData.style;
             const parentRect = parentEl.getBoundingClientRect();
             if(style.left&&style.left.charAt(style.left.length-1)==='%')style.left = `${(parseFloat(style.left)/100)*parseFloat(parentRect.width)}px`;
             if(style.width&&style.width.charAt(style.width.length-1)==='%')style.width =  `${(parseFloat(style.width)/100)*parseFloat(parentRect.width)}px`;

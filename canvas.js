@@ -1,7 +1,7 @@
+import { elementsList } from './constants.js';
 import { makeDraggableResizable, selectElement, deselectElement } from './elements.js';
+import { changeQueries, deepCopy, findKeyJustLessThan } from './mediaQueries.js';
 import { rgbToHex, percentageToPixel, pixelToPercentage } from './utils.js';
-
-
 let elementCounter = 0;
 
 export function renderElements() {
@@ -13,15 +13,29 @@ export function renderElements() {
             const element = document.createElement(node.type);
             element.id = node.id;
             element.className = 'draggable';
-            const attr = window.elementsList.find(el => el.id === node.id).attr;
+            let elementData = window.elementsList.find(el => el.id === node.id);
+            if(!elementData) {
+                element.style.display==='none';
+                elementData = {
+                    id: node.id,
+                    attr: {
+                        uid : node.id
+                    },
+                    style: {
+                        display : 'none'
+                    }
+                };
+                elementsList.push(elementData);
+                parentEl.appendChild(element);
+            }
+            const attr = elementData.attr;
             Object.keys(attr).forEach(prop => {
                 element.setAttribute(prop, attr[prop]);
             });
-            const style = window.elementsList.find(el => el.id === node.id).style;
+            const style = elementData.style;
             Object.keys(style).forEach(prop => {
                 element.style[prop] = style[prop];
             });
-
             parentEl.appendChild(element);
             makeDraggableResizable(element);
             parentEl = element;
@@ -33,6 +47,7 @@ export function renderElements() {
     }
 
     renderNode(window.elementsTree, canvas);
+    //changeQueries();
 }
 
 export function findNode(tree, id) {
@@ -97,9 +112,13 @@ export function addElement(type) {
         if(propAttr[prop].default)newElementStyle.attr[prop] = propAttr[prop].default;
     });
     if(parentId != 'canvas' && window.selectedElement.style.display === 'flex'){
-        propStyle = window.props[type].flexParent;
+        propStyle = window.props[type].flexChild;
+    }
+    else if(parentId != 'canvas' && window.selectedElement.style.display === 'grid'){
+        propStyle = window.props[type].gridChild;
     }
     Object.keys(propStyle).forEach(prop => {
+        if(prop === 'showgrids')newElementStyle.attr[prop] = propStyle[prop].default;
         if(propStyle[prop].default)newElementStyle.style[prop] = propStyle[prop].default;
     });
 
@@ -107,10 +126,12 @@ export function addElement(type) {
     window.userIdMap.set(newId, newId);
 
     renderElements();
+    changeQueries();
     selectElement(document.getElementById(newId));
 }
 
 export function deleteElement(id) {
+    if(!selectedElement)return;
     deselectElement();
     removeNode(window.elementsTree, id);
     const index = window.elementsList.findIndex(el => el.id === id);
@@ -133,9 +154,20 @@ export function getCode() {
             css += `#${element.attr.uid} {\n`;
             Object.keys(style).forEach(prop => {
                 const value = style[prop];
-                const inputType = window.props[node.type].style[prop];
+                const inputType = window.props[node.type].style[prop].type;
                 if(prop === 'left' || prop === 'width')css+=`\t${prop}: ${parseFloat(value)}%;\n`;
-                else if(inputType === 'input')css+=`\t${prop}: ${parseFloat(value) * 1.5}px;\n`;
+                else if(prop === 'grid-template-rows' || prop === 'grid-template-columns'){
+                    let str = element.style[prop].split(/\s+/);
+                    let newstr = '';
+                    str.forEach(st =>{
+                        if(st[st.length-1] === 'x'){
+                            newstr += `${parseFloat(st.replace('px', ''))* 1.5}px `;
+                        }
+                        else newstr += `${st} `;
+                    });
+                    css+=`\t${prop}: ${newstr};\n`;
+                }
+                else if(inputType === 'input')css+=`\t${prop}: ${parseFloat(value.replace('px', '')) * 1.5}px;\n`;
                 else if(inputType === 'color input')css+=`\t${prop}: ${value};\n`;
                 else css+=`\t${prop}: ${value};\n`;
             });
@@ -202,29 +234,47 @@ export function makeResponsive(){
     pixelToPercentage();
     renderElements();
 }
+
 export function makeCanvasResizable(){
     const workAreaRect = window.workArea.getBoundingClientRect();
     const canvasResizerColor = document.getElementById('canvas-resizer-green');
     window.canvasResizer.addEventListener('mousedown', resizeCanvasMouseDown);
     window.canvasResizer.addEventListener('mouseover',makeColorVisible);
     window.canvasResizer.addEventListener('mouseleave',makeColorInvisible);
+    let mediaIndex; 
     function resizeCanvasMouseDown(e){
         e.preventDefault();
         e.stopPropagation();
         makeResponsive();
+        mediaIndex = findKeyJustLessThan(window.mediaMap,window.canvas.getBoundingClientRect().width);
+        // //console.log(mediaIndex);
+        // //console.log(window.mediaQueries);
         document.addEventListener('mousemove', resizeCanvas);
         document.addEventListener('mouseup',stopResizeCanvas);
     }
     function resizeCanvas(e){
+        e.stopPropagation();
         let diff = workAreaRect.right - e.clientX;
         if(diff < 0 )diff = 0;
+        if(diff > ((1130-250)/2))diff = ((1130-250)/2);
         window.canvas.style.left = `${diff}px`;
         let newWidth = (e.clientX - diff);
-        let newLeft = (e.clientX - 3);
+        if(newWidth<250)newWidth = 250;
+        let newLeft = (diff + newWidth);
         if(newLeft > 1132)newLeft = 1132;
         if(newWidth > 1130)newWidth = 1130;
         window.canvas.style.width = `${newWidth}px`;
         window.canvasResizer.style.left = `${newLeft}px`;
+        let newIndex = findKeyJustLessThan(window.mediaMap,window.canvas.getBoundingClientRect().width);
+        if(newIndex != mediaIndex){
+            window.elementsList = deepCopy(window.mediaQueries[window.mediaMap.get(newIndex)]);
+            //console.log(window.elementsList);
+            renderElements();
+            makeResponsive();
+            //console.log('changed '+ window.mediaMap.get(newIndex));
+            //console.log(window.mediaQueries);
+            mediaIndex = newIndex;
+        }
     }
     function stopResizeCanvas(){
         percentageToPixel();
@@ -237,4 +287,8 @@ export function makeCanvasResizable(){
     function makeColorInvisible(){
         canvasResizerColor.style.display = 'none';
     }
+}
+export function removeProps(){
+    const propsContainer = window.propsContainer;
+    propsContainer.innerHTML = '';
 }
