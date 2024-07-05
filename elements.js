@@ -1,5 +1,6 @@
 import { rgbToHex } from './utils.js';
-import { renderBodyProps } from './canvas.js';
+import { renderBodyProps, renderElements } from './canvas.js';
+import { elementsTree } from './constants.js';
 
 export function selectElement(element) {
     if (window.selectedElement) {
@@ -67,8 +68,8 @@ export function makeDraggableResizable(element) {
         element.style.top = newTop - parentRect.top + "px";
         element.style.left = newLeft - parentRect.left + "px";
 
-        window.resizer.style.left = `${ newLeft + elementRect.width - 13}px`;
-        window.resizer.style.top = `${ newTop + elementRect.height - 13}px`;
+        window.resizer.style.left = `${ elementRect.right - 13}px`;
+        window.resizer.style.top = `${ elementRect.bottom - 13}px`;
 
         renderProps(element);
     }
@@ -105,8 +106,8 @@ function resizeElement(e) {
     window.selectedElement.style.width = newWidth + "px";
     window.selectedElement.style.height = newHeight + "px";
 
-    window.resizer.style.left = `${elementRect.left + newWidth  - 13}px`;
-    window.resizer.style.top = `${elementRect.top + newHeight - 13}px`;
+    window.resizer.style.left = `${elementRect.right - 13}px`;
+    window.resizer.style.top = `${elementRect.bottom- 13}px`;
 
     renderProps(window.selectedElement);
 }
@@ -118,12 +119,13 @@ function closeResizeElement() {
 export function renderProps(element) {
     const propsContainer = window.propsContainer;
     propsContainer.innerHTML = '';
-    const elementType = element.tagName.toLowerCase();
+    let elementType = element.tagName.toLowerCase();
     const props = window.props;
     const elementAttr = props[elementType].attr;
-    const elementStyle = props[elementType].style;
-    const elementProps=null;
+    let elementStyle = props[elementType].style;
+    if(element.parentElement.style.display === 'flex')elementStyle = props[elementType].flexParent;
 
+    const elementProps=null;
     Object.keys(elementAttr).forEach(prop => {
         const inputType = elementAttr[prop].type;
         const propLabel = document.createElement('label');
@@ -136,11 +138,7 @@ export function renderProps(element) {
             propInput.type = 'text';
             propInput.value = element.getAttribute(prop);
         }
-        else if(inputType === 'checkbox'){
-            propInput = document.createElement('input');
-            propInput.type = 'checkbox';
-            propInput.value = element.getAttribute(prop);
-        }
+        
 
         propInput.id = prop;
         propInput.className = '_input';
@@ -158,30 +156,40 @@ export function renderProps(element) {
             elementData.attr[prop] = e.target.value;
             window.selectedElement.setAttribute(prop,e.target.value);
         });
-        
-        propsContainer.appendChild(propLabel);
-        propsContainer.appendChild(propInput);
+        let propDiv = document.createElement('div');
+        propDiv.className = 'propDiv';
+        propDiv.appendChild(propLabel);
+        propDiv.appendChild(propInput);
+        propsContainer.appendChild(propDiv);
     });
-
-    Object.keys(elementStyle).forEach(prop => {
+    Object.keys(elementStyle).forEach(prop => addProps(prop));
+    if(element.style.display === 'flex'){
+        elementStyle = props[elementType].flex;
+        Object.keys(elementStyle).forEach(prop => addProps(prop));
+    }
+    function addProps(prop){
+        if(!elementStyle[prop].type)return;
         const inputType = elementStyle[prop].type;
         const propLabel = document.createElement('label');
         propLabel.innerText = prop;
-        propLabel.htmlFor = prop;
 
         let propInput;
         if (inputType === 'input' || inputType === 'text') {
             propInput = document.createElement('input');
             propInput.type = 'text';
             propInput.value = window.getComputedStyle(element)[prop];
+            propLabel.htmlFor = prop;
         } else if (inputType === 'slider-input') {
             propInput = document.createElement('input');
             propInput.type = 'range';
             propInput.value = parseInt(window.getComputedStyle(element)[prop]) || 0;
+            propLabel.htmlFor = prop;
         } else if (inputType === 'color input') {
             propInput = document.createElement('input');
             propInput.type = 'color';
+            propInput.classList.add('_colorInput');
             propInput.value = rgbToHex(window.getComputedStyle(element)[prop]);
+            propLabel.htmlFor = prop;
         } else if(inputType === 'radio'){
             propInput = document.createElement('div');
             elementStyle[prop].options.forEach(option => {
@@ -190,14 +198,14 @@ export function renderProps(element) {
                 eachLabel.innerText = option;
                 eachLabel.htmlFor = option;
                 eachInput.type = 'radio';
-                eachInput.name = 'prop';
+                eachInput.name = prop;
                 eachInput.value = option;
-
                 if(element.style[prop] === option)eachInput.checked = true;
                 eachInput.addEventListener('click',()=>{
                     const elementData = window.elementsList.find(el => el.id === window.selectedElement.id);
                     elementData.style[prop] = option;
                     window.selectedElement.style[prop] = option;
+                    renderProps(element);
                 });
                 propInput.appendChild(eachLabel);
                 propInput.appendChild(eachInput);
@@ -205,10 +213,26 @@ export function renderProps(element) {
             propsContainer.appendChild(propLabel);
             propsContainer.appendChild(propInput);
             return;
+        } else if(inputType === 'select'){ 
+            propInput = document.createElement('select');
+            propInput.name = prop;
+            elementStyle[prop].options.forEach(option => {
+                let eachInput = document.createElement('option');
+                eachInput.value = option;
+                eachInput.innerText = option;
+                propInput.appendChild(eachInput);
+            });
+            propInput.value = window.getComputedStyle(element)[prop];
+            propLabel.htmlFor = prop;
+        } else if(inputType === 'number'){
+            propInput = document.createElement('input');
+            propInput.type = 'number';
+            propInput.value = window.getComputedStyle(element)[prop];
+            propLabel.htmlFor = prop;
         }
 
         propInput.id = prop;
-        propInput.className = '_input';
+        propInput.classList.add('_input');
         propInput.addEventListener('input', (e) => {
             const elementData = window.elementsList.find(el => el.id === window.selectedElement.id);
             if(inputType === 'slider-input') {
@@ -220,8 +244,22 @@ export function renderProps(element) {
             }
             
         });
-
-        propsContainer.appendChild(propLabel);
-        propsContainer.appendChild(propInput);
-    });
+        let propDiv = document.createElement('div');
+        propDiv.className = 'propDiv';
+        propDiv.appendChild(propLabel);
+        propDiv.appendChild(propInput);
+        propsContainer.appendChild(propDiv);
+    
+    }
+}
+export function focusDefocus(){
+    if(window.isFocused){renderElements();window.isFocused=false;return;}
+    function makeInvisible(node) {
+        if(node.id != 'canvas'&&selectedElement.id != node.id)document.getElementById(node.id).style.visibility = 'hidden';
+        node.children.forEach(childNode => {
+            makeInvisible(childNode);
+        });
+    }
+    makeInvisible(window.elementsTree);
+    window.isFocused = true;
 }

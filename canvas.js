@@ -92,28 +92,15 @@ export function addElement(type) {
     };
 
     const propAttr = window.props[type].attr;
-    const propStyle = window.props[type].style;
-    newElementStyle.style['position'] = 'absolute';
+    let propStyle = window.props[type].style;
     Object.keys(propAttr).forEach(prop => {
-        if(propAttr[prop].type!='text')newElementStyle.attr[prop] = propAttr[prop].default;
+        if(propAttr[prop].default)newElementStyle.attr[prop] = propAttr[prop].default;
     });
-    
-    // if(parentId != 'canvas' && window.selectedElement.style.display === 'flex'){
-    //     newElementStyle.style['flex-basis'] = '100px';
-    //     newElementStyle.style['line-height'] = '100px';
-    //     newElementStyle.style['background-color'] = 'green';
-    //     window.elementsList.push(newElementStyle);
-    //     window.userIdMap.set(newId, newId);
-
-    //     renderElements();
-    //     selectElement(document.getElementById(newId));
-    //     return;
-    // }
+    if(parentId != 'canvas' && window.selectedElement.style.display === 'flex'){
+        propStyle = window.props[type].flexParent;
+    }
     Object.keys(propStyle).forEach(prop => {
-        if(propStyle[prop].type === 'radio'){
-            newElementStyle.style[prop] = propStyle[prop].options[0];
-        }
-        else newElementStyle.style[prop] = propStyle[prop].default;
+        if(propStyle[prop].default)newElementStyle.style[prop] = propStyle[prop].default;
     });
 
     window.elementsList.push(newElementStyle);
@@ -143,7 +130,7 @@ export function getCode() {
             const element = window.elementsList.find(el => el.id === node.id);
             const style = element.style;
             const attr = element.attr;
-            css += `#${element.attr.uid} {\n\tposition: absolute;\n`;
+            css += `#${element.attr.uid} {\n`;
             Object.keys(style).forEach(prop => {
                 const value = style[prop];
                 const inputType = window.props[node.type].style[prop];
@@ -196,11 +183,12 @@ export function renderBodyProps() {
         if (inputType === 'color input') {
             propInput = document.createElement('input');
             propInput.type = 'color';
+            propInput.classList.add('_colorInput');
             propInput.value = rgbToHex(window.getComputedStyle(document.body)[prop]);
         }
 
         propInput.id = prop;
-        propInput.className = '_input';
+        propInput.classList.add('_input');
         propInput.addEventListener('input', (e) => {
             window.canvas.style[prop] = e.target.value;
         });
@@ -233,7 +221,7 @@ export function makeCanvasResizable(){
         window.canvas.style.left = `${diff}px`;
         let newWidth = (e.clientX - diff);
         let newLeft = (e.clientX - 3);
-        if(newLeft > 1132)newleft = 1132;
+        if(newLeft > 1132)newLeft = 1132;
         if(newWidth > 1130)newWidth = 1130;
         window.canvas.style.width = `${newWidth}px`;
         window.canvasResizer.style.left = `${newLeft}px`;

@@ -9,14 +9,16 @@ export function pixelToPercentage(){
     function changeStyle(node, parentEl) {
         let element = document.getElementById(node.id);
         if(node.id === 'canvas') element = window.canvas;
+        if(parentEl.style.display === 'flex')return;
         node.children.forEach(childNode => {
             changeStyle(childNode, element);
         });
-        if (node.id !== 'canvas') {
+        if (node.id !== 'canvas'&& parentEl.style.display!='flex') {
             const style = window.elementsList.find(el => el.id === node.id).style;
             const parentRect = parentEl.getBoundingClientRect();
-            style.left = `${(parseFloat(style.left)/parseFloat(parentRect.width))*100}%`;
-            style.width =  `${(parseFloat(style.width)/parseFloat(parentRect.width))*100}%`;
+
+            if(style.left&&style.left.charAt(style.left.length-1)!='%')style.left = `${(parseFloat(style.left)/parseFloat(parentRect.width))*100}%`;
+            if(style.width&&style.width.charAt(style.width.length-1)!='%')style.width =  `${(parseFloat(style.width)/parseFloat(parentRect.width))*100}%`;
         }
     }
     changeStyle(window.elementsTree,window.canvas);
@@ -31,8 +33,8 @@ export function percentageToPixel(){
         if (node.id !== 'canvas') {
             const style = window.elementsList.find(el => el.id === node.id).style;
             const parentRect = parentEl.getBoundingClientRect();
-            style.left = `${(parseFloat(style.left)/100)*parseFloat(parentRect.width)}px`;
-            style.width =  `${(parseFloat(style.width)/100)*parseFloat(parentRect.width)}px`;
+            if(style.left&&style.left.charAt(style.left.length-1)==='%')style.left = `${(parseFloat(style.left)/100)*parseFloat(parentRect.width)}px`;
+            if(style.width&&style.width.charAt(style.width.length-1)==='%')style.width =  `${(parseFloat(style.width)/100)*parseFloat(parentRect.width)}px`;
         }
     }
     changeStyle(window.elementsTree,window.canvas);
