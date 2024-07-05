@@ -15,12 +15,9 @@ export function renderElements() {
             element.className = 'draggable';
             let elementData = window.elementsList.find(el => el.id === node.id);
             if(!elementData) {
-                element.style.display==='none';
+                element.style.display ='none';
                 elementData = {
                     id: node.id,
-                    attr: {
-                        uid : node.id
-                    },
                     style: {
                         display : 'none'
                     }
@@ -28,7 +25,7 @@ export function renderElements() {
                 elementsList.push(elementData);
                 parentEl.appendChild(element);
             }
-            const attr = elementData.attr;
+            const attr = node.attr;
             Object.keys(attr).forEach(prop => {
                 element.setAttribute(prop, attr[prop]);
             });
@@ -92,6 +89,9 @@ export function addElement(type) {
     const newElement = {
         id: newId,
         type: type,
+        attr: {
+            uid : newId
+        },
         parent: parentId,
         children: []
     };
@@ -100,16 +100,13 @@ export function addElement(type) {
 
     const newElementStyle = {
         id: newId,
-        attr: {
-            uid : newId
-        },
         style: {}
     };
 
     const propAttr = window.props[type].attr;
     let propStyle = window.props[type].style;
     Object.keys(propAttr).forEach(prop => {
-        if(propAttr[prop].default)newElementStyle.attr[prop] = propAttr[prop].default;
+        if(propAttr[prop].default)newElement.attr[prop] = propAttr[prop].default;
     });
     if(parentId != 'canvas' && window.selectedElement.style.display === 'flex'){
         propStyle = window.props[type].flexChild;
@@ -118,7 +115,7 @@ export function addElement(type) {
         propStyle = window.props[type].gridChild;
     }
     Object.keys(propStyle).forEach(prop => {
-        if(prop === 'showgrids')newElementStyle.attr[prop] = propStyle[prop].default;
+        if(prop === 'showgrids')newElement.attr[prop] = propStyle[prop].default;
         if(propStyle[prop].default)newElementStyle.style[prop] = propStyle[prop].default;
     });
 
@@ -146,15 +143,43 @@ export function getCode() {
     let html = '';
     let css = '';
     makeResponsive();
+    let elementIds = [];
     function processNode(node) {
         if (node.id !== 'canvas') {
-            const element = window.elementsList.find(el => el.id === node.id);
+            elementIds.push(node.id);
+            const attr = node.attr;
+            html += `<${node.type} id="${attr.uid}" `;
+            Object.keys(attr).forEach(prop => {
+                if(prop != 'uid')html+=`${prop}= '${attr[prop]}' `;
+            });
+            html+=`>\n`;
+        }
+        node.children.forEach(childNode => {
+            processNode(childNode);
+        });
+
+        if (node.id !== 'canvas') {
+            if(node.type != 'img')html += `</${node.type}>\n`;
+        }
+    }
+    processNode(window.elementsTree);
+    //-----------------------------------------------------------------------
+    css += `body {\n\tbackground-color : ${window.getComputedStyle(window.canvas).backgroundColor}\n}\n`;
+    for (let key of window.mediaMap.keys()){
+        if(key != 0){
+            css += `@media screen and (min-width: ${key * 1.5}px){\n`;
+        }
+        let List = window.mediaQueries[mediaMap.get(key)];
+        elementIds.forEach(id => {
+            const element = List.find(el => el.id === id);
+            if(!element){
+                css += `#${userIdMap.get(element.id)} {\n\tdisplay: none;\n}`;
+            }
             const style = element.style;
-            const attr = element.attr;
-            css += `#${element.attr.uid} {\n`;
+            css += `#${userIdMap.get(element.id)} {\n`;
+            const node = findNode(window.elementsTree,element.id);
             Object.keys(style).forEach(prop => {
                 const value = style[prop];
-                const inputType = window.props[node.type].style[prop].type;
                 if(prop === 'left' || prop === 'width')css+=`\t${prop}: ${parseFloat(value)}%;\n`;
                 else if(prop === 'grid-template-rows' || prop === 'grid-template-columns'){
                     let str = element.style[prop].split(/\s+/);
@@ -167,32 +192,14 @@ export function getCode() {
                     });
                     css+=`\t${prop}: ${newstr};\n`;
                 }
-                else if(inputType === 'input')css+=`\t${prop}: ${parseFloat(value.replace('px', '')) * 1.5}px;\n`;
-                else if(inputType === 'color input')css+=`\t${prop}: ${value};\n`;
+                else if(prop === 'height' || prop === 'margin')css+=`\t${prop}: ${parseFloat(value.replace('px', '')) * 1.5}px;\n`;
                 else css+=`\t${prop}: ${value};\n`;
             });
             css+='}\n';
-
-            html += `<${node.type} id="${element.attr.uid}" `;
-            Object.keys(attr).forEach(prop => {
-                if(prop != 'uid')html+=`${prop}= '${attr[prop]}' `;
-            });
-            html+=`>\n`;
-        }
-        else {
-            css += `body {\n\tbackground-color: ${window.getComputedStyle(window.canvas).backgroundColor};\n\tcolor: ${window.getComputedStyle(window.canvas).color};\n}\n`;
-
-        }
-        node.children.forEach(childNode => {
-            processNode(childNode);
         });
-
-        if (node.id !== 'canvas') {
-            if(node.type != 'img')html += `</${node.type}>\n`;
-        }
+        if(key != 0)css+='}\n';
     }
-
-    processNode(window.elementsTree);
+//-----------------------------------------------------------------------
     percentageToPixel();
     window.codeDisplay.innerText = `<!DOCTYPE html>\n<html lang="en">\n<head>\n\t<meta charset="UTF-8">\n\t<meta name="viewport" content="width=device-width, initial-scale=1.0">\n\t<title>Document</title>\n\t<style>\n${css}\n\t</style>\n</head>\n<body>\n${html}\n</body>\n</html>`;
 }
@@ -247,8 +254,6 @@ export function makeCanvasResizable(){
         e.stopPropagation();
         makeResponsive();
         mediaIndex = findKeyJustLessThan(window.mediaMap,window.canvas.getBoundingClientRect().width);
-        // //console.log(mediaIndex);
-        // //console.log(window.mediaQueries);
         document.addEventListener('mousemove', resizeCanvas);
         document.addEventListener('mouseup',stopResizeCanvas);
     }
@@ -268,11 +273,8 @@ export function makeCanvasResizable(){
         let newIndex = findKeyJustLessThan(window.mediaMap,window.canvas.getBoundingClientRect().width);
         if(newIndex != mediaIndex){
             window.elementsList = deepCopy(window.mediaQueries[window.mediaMap.get(newIndex)]);
-            //console.log(window.elementsList);
             renderElements();
             makeResponsive();
-            //console.log('changed '+ window.mediaMap.get(newIndex));
-            //console.log(window.mediaQueries);
             mediaIndex = newIndex;
         }
     }

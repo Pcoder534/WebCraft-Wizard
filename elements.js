@@ -1,5 +1,5 @@
 import { rgbToHex } from './utils.js';
-import { renderBodyProps, renderElements } from './canvas.js';
+import { findNode, renderBodyProps, renderElements } from './canvas.js';
 import { showGrids, count, removeGrids, renderPointers, changedRows, changedCols, makeDraggableInGrid, makeResizableInGrid } from './grid.js';
 import { changeQueries } from './mediaQueries.js';
 
@@ -156,17 +156,17 @@ export function renderProps(element) {
         propInput.id = prop;
         propInput.className = '_input';
         propInput.addEventListener('input', (e) => {
-            const elementData = window.elementsList.find(el => el.id === window.selectedElement.id);
+            const elementNode = findNode(window.elementsTree,element.id);
             if (prop === 'uid') {
                 if (window.userIdMap.has(e.target.value)) {
                     alert('This ID is already in use. Please choose a different one.');
-                    propInput.value = elementData.attr[prop];
+                    propInput.value = elementNode.attr[prop];
                     return;
                 }
-                window.userIdMap.delete(elementData.attr[prop]);
-                window.userIdMap.set(e.target.value, elementData.id);
+                window.userIdMap.delete(elementNode.attr[prop]);
+                window.userIdMap.set(e.target.value, elementNode.id);
             }
-            elementData.attr[prop] = e.target.value;
+            elementNode.attr[prop] = e.target.value;
             window.selectedElement.setAttribute(prop,e.target.value);
         });
         let propDiv = document.createElement('div');
@@ -229,6 +229,7 @@ export function renderProps(element) {
                     }
                     renderElements();
                     selectElement(document.getElementById(element.id));
+                    changeQueries();
                     renderProps(window.selectedElement);
                 });
                 propInput.appendChild(eachLabel);
@@ -268,15 +269,15 @@ export function renderProps(element) {
         propInput.classList.add('_input');
         if(prop === 'showgrids'){
             propInput.addEventListener('change', (e) => {
-                const elementData = window.elementsList.find(el => el.id === window.selectedElement.id);
+                const elementNode = findNode(window.elementsTree,element.id);
                 if(propInput.checked === true){
                     element.setAttribute(prop, 'true');
-                    elementData.attr[prop] = 'true';
+                    elementNode.attr[prop] = 'true';
                     showGrids(element);
                 }
                 else {
                     element.setAttribute(prop, 'false');
-                    elementData.attr[prop] = 'false';
+                    elementNode.attr[prop] = 'false';
                     removeGrids(element);
                 }
                 changeQueries();
@@ -288,13 +289,14 @@ export function renderProps(element) {
                 elementData.style[prop] = `${e.target.value}px`;
                 window.selectedElement.style[prop] = `${e.target.value}px`;
             } else if(grid && inputType === 'number'){
+                const elementNode = findNode(window.elementsTree,element.id);
                 let str = '';
                 for(let i=0;i<e.target.value;i++){str+='auto ';}
                 elementData.style[prop] = str;
                 window.selectedElement.style[prop] = str;
                 document.getElementById('showgrids').checked = true;
                 element.setAttribute('showgrids', 'true');
-                elementData.attr['showgrids'] = 'true';
+                elementNode.attr['showgrids'] = 'true';
                 if(prop === 'rows')changedRows(element);
                 else changedCols(element);
             } else {

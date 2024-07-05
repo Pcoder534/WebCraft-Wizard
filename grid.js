@@ -1,4 +1,5 @@
 import { renderProps, selectElement } from "./elements.js";
+import { changeQueries } from "./mediaQueries.js";
 
 export function changedRows(element){
     let countRow = window.getComputedStyle(element)['grid-template-rows'].split(' ').length;
@@ -73,6 +74,7 @@ export function renderPointers(element){
                 rowPointers[ind] = newTop;
                 renderPointers(element);
                 renderRowTemplates(rowPointers,element,elementData);
+                changeQueries();
             }
 
             function stopResizeGrid(e){
@@ -92,6 +94,7 @@ export function renderPointers(element){
             const ind = fixedCheckBox.getAttribute('index');
             elementData.rowFixed[ind] = !elementData.rowFixed[ind];
             renderRowTemplates(rowPointers,element,elementData);
+            changeQueries();
         });
         fixedCheckBox.addEventListener('mouseover',(e)=>{
             message.style.left = `${e.clientX}px`;
@@ -132,6 +135,7 @@ export function renderPointers(element){
                 colPointers[ind] = newLeft;
                 renderPointers(element);
                 renderColTemplates(colPointers,element,elementData);
+                changeQueries();
             }
 
             function stopResizeGrid(e){
@@ -152,6 +156,7 @@ export function renderPointers(element){
             const ind = fixedCheckBox.getAttribute('index');
             elementData.colFixed[ind] = !elementData.colFixed[ind];
             renderColTemplates(colPointers,element,elementData);
+            changeQueries();
         });
         fixedCheckBox.addEventListener('mouseover',(e)=>{
             message.style.left = `${e.clientX}px`;
@@ -289,6 +294,7 @@ export function makeDraggableInGrid(element){
         elementData.style['grid-column-end'] = newColStart + spanX;
         window.resizer.style.left = `${element.getBoundingClientRect().right - 13}px`;
         window.resizer.style.top = `${element.getBoundingClientRect().bottom - 13}px`;
+        changeQueries();
         renderProps(element);
     }
     function stopMove(e){
@@ -333,6 +339,7 @@ export function makeResizableInGrid(element){
 
         window.resizer.style.left = `${element.getBoundingClientRect().right - 13}px`;
         window.resizer.style.top = `${element.getBoundingClientRect().bottom - 13}px`;
+        changeQueries();
         renderProps(element);
     }
     function stopResize(e){
