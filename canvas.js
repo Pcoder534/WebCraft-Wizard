@@ -113,6 +113,8 @@ export function addElement(type) {
     }
     else if(parentId != 'canvas' && window.selectedElement.style.display === 'grid'){
         propStyle = window.props[type].gridChild;
+        newElementStyle.rowFixed = new Array(1).fill(false);
+        newElementStyle.colFixed = new Array(1).fill(false);
     }
     Object.keys(propStyle).forEach(prop => {
         if(prop === 'showgrids')newElement.attr[prop] = propStyle[prop].default;
@@ -146,8 +148,8 @@ export function getCode() {
     let elementIds = [];
     function processNode(node) {
         if (node.id !== 'canvas') {
-            elementIds.push(node.id);
             const attr = node.attr;
+            elementIds.push([node.id,attr.uid]);
             html += `<${node.type} id="${attr.uid}" `;
             Object.keys(attr).forEach(prop => {
                 if(prop != 'uid')html+=`${prop}= '${attr[prop]}' `;
@@ -171,12 +173,12 @@ export function getCode() {
         }
         let List = window.mediaQueries[mediaMap.get(key)];
         elementIds.forEach(id => {
-            const element = List.find(el => el.id === id);
+            const element = List.find(el => el.id === id[0]);
             if(!element){
-                css += `#${userIdMap.get(element.id)} {\n\tdisplay: none;\n}`;
+                css += `#${id[1]} {\n\tdisplay: none;\n}`;
             }
             const style = element.style;
-            css += `#${userIdMap.get(element.id)} {\n`;
+            css += `#${id[1]} {\n`;
             const node = findNode(window.elementsTree,element.id);
             Object.keys(style).forEach(prop => {
                 const value = style[prop];

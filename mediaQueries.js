@@ -1,3 +1,4 @@
+import { mediaMap } from "./constants.js";
 import { percentageToPixel, pixelToPercentage } from "./utils.js";
 
 let mediaCount = 1;
@@ -35,6 +36,11 @@ function changeKey(map, oldKey, newKey) {
     }
     return false;
 }
+function removeKey(map,key){
+    if(map.has(key)){
+        map.delete(key);
+    }
+}
 
 export function saveQuery(){
     pixelToPercentage();
@@ -46,6 +52,22 @@ export function saveQuery(){
     mediaPointer.className = 'mediaPointer';
     mediaPointer.setAttribute('key',Math.floor(canvasRect.width));
     mediaPointer.style.left = window.canvasResizer.style.left;
+    const mediaMessage = document.createElement('div');
+    mediaMessage.className = 'message';
+    const mediaRemove = document.createElement('div')
+    mediaRemove.className = 'removeButton';
+    mediaRemove.innerText = 'x';
+    
+    mediaRemove.style.display = 'none';
+    mediaMessage.style.display = 'none';
+
+    mediaRemove.addEventListener('click',(e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        removeKey(window.mediaMap,parseInt(mediaPointer.getAttribute('key')));
+        window.workArea.removeChild(mediaPointer);
+        console.log(window.mediaMap);
+    });
     mediaPointer.addEventListener('mousedown',(e)=>{
         e.preventDefault();
         e.stopPropagation();
@@ -68,6 +90,19 @@ export function saveQuery(){
         document.removeEventListener('mousemove',moveMediaPointer);
         document.removeEventListener('mouseup',stopMediaPointer);
     }
+    mediaPointer.addEventListener('mouseover',showMessage);
+    mediaPointer.addEventListener('mouseleave',hideMessage);
+    function showMessage(){
+        mediaMessage.innerText = `min-width\n(${mediaPointer.getAttribute('key')}px)`;
+        mediaMessage.style.display = 'block';
+        mediaRemove.style.display = 'block';
+    }
+    function hideMessage(){
+        mediaRemove.style.display = 'none';
+        mediaMessage.style.display = 'none';
+    }
+    mediaPointer.appendChild(mediaRemove);
+    mediaPointer.appendChild(mediaMessage);
     window.workArea.appendChild(mediaPointer);
     percentageToPixel();
 }
