@@ -53,9 +53,9 @@ body {
     background-color: black;
     border-radius: 10px;
     padding: 10px;
-    height: 100%;
+    height: 95%;
     width: auto;
-    left: 1160px;
+    left: 1150px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -80,19 +80,22 @@ body {
     min-width: 300px;
     width: auto;
     padding: 10px;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: auto auto;
+    overflow-y: auto;
+    /* flex-direction: column;
     flex-wrap: wrap;
     justify-content: top;
-    align-items: center;
+    align-items: center; */
     box-sizing: border-box;
     color:#fff;
     font-size: 12px;
 }
 .propDiv {
-    width: 40%;
+    width: 100%;
     margin-bottom:10px;
     align-items: center;
+    justify-content: center;
 }
 ._button, ._input {
     border: none;
@@ -106,13 +109,14 @@ body {
     height:40px;
 }
 ._input {
+    border: 3px solid rgb(104, 104, 104);;
     height : 1.25rem;
     width:40%;
     color: black;
 }
 ._colorInput {
-    padding:2px;
-    height:20px;
+    padding:0px;
+    height:25px;
 }
 select {
     height: 20px;
@@ -144,17 +148,47 @@ select {
     z-index: 2;
 }
 
-
-#_codeOutput {
+#code_outer {
     position: absolute;
-    background-color: white;
-    padding: 10px;
-    border-radius: 10px;
-    top:97%;
-    color: black;
-    white-space: pre-wrap;
+    background-color: black;
+    left :2%;
+    top: 5%;
+    width : 95%;
+    height : 92%;
+    display: grid;
+    grid-template-rows: 40px auto;
+    border-radius:10px;
+    z-index: 5;
 }
-
+._codeOutputHeader {
+    grid-row-start: 1;
+    display: flex;
+    justify-content:space-between;
+    padding-left: 30px;
+    padding-right: 30px;
+    color: white;
+    font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+}
+#_codeOutput {
+    grid-row-start: 2;
+    background-color: rgb(37, 37, 37);
+    padding: 10px;
+    margin:15px;
+    border-radius: 10px;
+    color: rgb(227, 227, 227);
+    white-space: pre-wrap;
+    z-index: 6;
+    overflow: auto;
+}
+#_copyCode {
+    width:50px;
+}
+#_codeClose {
+    background-color: crimson;
+}
+#_codeClose:active {
+    background-color: rgb(91, 9, 26);
+}
 .gridBox {
     background-color: darkslategrey;
     border: 2px solid black;
@@ -188,7 +222,7 @@ select {
     z-index: 2;
 }
 .message {
-    background-color: rgb(242, 242, 242);
+    background-color: rgb(88, 88, 88);
     color: black;
     position: absolute;
     opacity: 80%;
@@ -198,7 +232,7 @@ select {
     width: auto;
     z-index: 3;
     left:20px;
-    top: -10px;
+    top: -50px;
 }
 .mediaPointer {
     position: absolute;
@@ -223,4 +257,26 @@ select {
     font-size: 10px;
     z-index: 4;
     cursor:pointer;
+}
+#copiedMessage {
+    position: absolute;
+    display: none;
+    opacity: 90%;
+    transition: opacity 1s;
+    background-color: green;
+    color:white;
+    margin-top: 10px;
+    bottom: 7%;
+    right:7%;
+    width:100px;
+    height: 60px;
+    text-align: center;
+    font-size: 17px;
+    align-content: center;
+    border-radius: 20px;
+    font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    z-index: 7;
+}
+#copiedMessage.fade-out {
+    opacity: 0;
 }

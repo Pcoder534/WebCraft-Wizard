@@ -235,8 +235,11 @@ export function renderProps(element) {
                 propInput.appendChild(eachLabel);
                 propInput.appendChild(eachInput);
             });
-            propsContainer.appendChild(propLabel);
-            propsContainer.appendChild(propInput);
+            let propDiv = document.createElement('div');
+            propDiv.className = 'propDiv';
+            propDiv.appendChild(propLabel);
+            propDiv.appendChild(propInput);
+            propsContainer.appendChild(propDiv);
             return;
         } else if(inputType === 'select'){ 
             propInput = document.createElement('select');

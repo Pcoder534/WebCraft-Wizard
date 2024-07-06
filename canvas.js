@@ -144,6 +144,7 @@ export function deleteElement(id) {
 export function getCode() {
     let html = '';
     let css = '';
+    window.codeOuter.style.display = 'grid';
     makeResponsive();
     let elementIds = [];
     function processNode(node) {
@@ -206,6 +207,27 @@ export function getCode() {
     window.codeDisplay.innerText = `<!DOCTYPE html>\n<html lang="en">\n<head>\n\t<meta charset="UTF-8">\n\t<meta name="viewport" content="width=device-width, initial-scale=1.0">\n\t<title>Document</title>\n\t<style>\n${css}\n\t</style>\n</head>\n<body>\n${html}\n</body>\n</html>`;
 }
 
+export function copyCode(){
+    const text = window.codeDisplay.innerText;
+
+    navigator.clipboard.writeText(text).then(function() {
+        showCopiedMessage();
+    }).catch(function(error) {
+        console.error('Could not copy text: ', error);
+    });
+}
+function showCopiedMessage() {
+    const copiedMessage = document.getElementById('copiedMessage');
+    copiedMessage.style.display = 'block';
+    copiedMessage.classList.remove('fade-out');
+    
+    setTimeout(function() {
+        copiedMessage.classList.add('fade-out');
+    }, 500);
+    setTimeout(function() {
+        copiedMessage.style.display = 'none';
+    }, 1500);
+}
 export function renderBodyProps() {
     const bodyProps = {
         backgroundColor: "color input",
@@ -233,9 +255,11 @@ export function renderBodyProps() {
         propInput.addEventListener('input', (e) => {
             window.canvas.style[prop] = e.target.value;
         });
-
-        propsContainer.appendChild(propLabel);
-        propsContainer.appendChild(propInput);
+        let propDiv = document.createElement('div');
+        propDiv.className = 'propDiv';
+        propDiv.appendChild(propLabel);
+        propDiv.appendChild(propInput);
+        propsContainer.appendChild(propDiv);
     });
 }
 export function makeResponsive(){
@@ -261,15 +285,15 @@ export function makeCanvasResizable(){
     }
     function resizeCanvas(e){
         e.stopPropagation();
-        let diff = workAreaRect.right - e.clientX;
+        let diff = workAreaRect.right - 10 - e.clientX;
         if(diff < 0 )diff = 0;
-        if(diff > ((1130-250)/2))diff = ((1130-250)/2);
+        if(diff > ((workAreaRect.width - 10 -250)/2))diff = ((workAreaRect.width - 10 - 250)/2);
         window.canvas.style.left = `${diff}px`;
-        let newWidth = (e.clientX - diff);
+        let newWidth = (e.clientX - workAreaRect.left - diff);
         if(newWidth<250)newWidth = 250;
         let newLeft = (diff + newWidth);
-        if(newLeft > 1132)newLeft = 1132;
-        if(newWidth > 1130)newWidth = 1130;
+        if(newLeft > workAreaRect.width - 8)newLeft = workAreaRect.width -8;
+        if(newWidth > workAreaRect.width-10)newWidth = workAreaRect.width-10;
         window.canvas.style.width = `${newWidth}px`;
         window.canvasResizer.style.left = `${newLeft}px`;
         let newIndex = findKeyJustLessThan(window.mediaMap,window.canvas.getBoundingClientRect().width);

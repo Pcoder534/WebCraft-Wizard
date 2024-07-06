@@ -45,9 +45,7 @@ export function renderPointers(element){
     let colPointers = strCol.map(str => parseFloat(str.replace('px', '')));
     for(let i=1;i<rowPointers.length;i++)rowPointers[i] += rowPointers[i-1];
     for(let i=1;i<colPointers.length;i++)colPointers[i] += colPointers[i-1];
-    const message = document.createElement('div');
-    message.className = 'message';
-    message.innerText = 'Fixed size?';
+    
     let index = 0,prev=0;
     rowPointers.forEach(pointer => {
         if(index != rowPointers.length-1){
@@ -97,12 +95,13 @@ export function renderPointers(element){
             changeQueries();
         });
         fixedCheckBox.addEventListener('mouseover',(e)=>{
-            message.style.left = `${e.clientX}px`;
-            message.style.top = `${e.clientY-20}px`;
-            window.workArea.appendChild(message);
+            let fixedCheckBoxRect = fixedCheckBox.getBoundingClientRect();
+            window.message.style.left = `${fixedCheckBoxRect.right}px`;
+            window.message.style.top  = `${fixedCheckBoxRect.top-30}px`;
+            window.message.style.display = 'block';
         });
         fixedCheckBox.addEventListener('mouseleave',(e)=>{
-            window.workArea.removeChild(message);
+            window.message.style.display = 'none';
         });
         element.appendChild(fixedCheckBox);
         index++;prev = pointer;
@@ -150,6 +149,7 @@ export function renderPointers(element){
         fixedCheckBox.style.top = '-10px';
         fixedCheckBox.style.left = `${(pointer + prev)/2 - 5}px`;
         fixedCheckBox.setAttribute('index',index);
+        
         if(elementData.colFixed[index] === true)fixedCheckBox.checked = true;
 
         fixedCheckBox.addEventListener('click',(e)=>{
@@ -159,13 +159,15 @@ export function renderPointers(element){
             changeQueries();
         });
         fixedCheckBox.addEventListener('mouseover',(e)=>{
-            message.style.left = `${e.clientX}px`;
-            message.style.top = `${e.clientY-20}px`;
-            window.workArea.appendChild(message);
+            let fixedCheckBoxRect = fixedCheckBox.getBoundingClientRect();
+            window.message.style.left = `${fixedCheckBoxRect.right}px`;
+            window.message.style.top  = `${fixedCheckBoxRect.top-30}px`;
+            window.message.style.display = 'block';
         });
         fixedCheckBox.addEventListener('mouseleave',(e)=>{
-            window.workArea.removeChild(message);
+            window.message.style.display = 'none';
         });
+        
         element.appendChild(fixedCheckBox);
         index++;prev = pointer;
     });
