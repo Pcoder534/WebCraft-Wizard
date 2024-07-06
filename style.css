@@ -155,7 +155,7 @@ select {
     top: 5%;
     width : 95%;
     height : 92%;
-    display: grid;
+    display: none;
     grid-template-rows: 40px auto;
     border-radius:10px;
     z-index: 5;

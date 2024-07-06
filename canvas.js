@@ -75,7 +75,7 @@ export function removeNode(tree, id) {
     return false;
 }
 
-export function addElement(type) {
+export function addElement(type,Style) {
     let parentId;
     if (!window.selectedElement) parentId = "canvas";
     else {
@@ -97,30 +97,37 @@ export function addElement(type) {
     };
     const parentNode = findNode(window.elementsTree, parentId);
     parentNode.children.push(newElement);
-
-    const newElementStyle = {
-        id: newId,
-        style: {}
-    };
-
-    const propAttr = window.props[type].attr;
-    let propStyle = window.props[type].style;
-    Object.keys(propAttr).forEach(prop => {
-        if(propAttr[prop].default)newElement.attr[prop] = propAttr[prop].default;
-    });
-    if(parentId != 'canvas' && window.selectedElement.style.display === 'flex'){
-        propStyle = window.props[type].flexChild;
+    let newElementStyle;
+    if(Style){
+        newElementStyle = deepCopy(Style);
+        newElementStyle.id = newId;
+        newElementStyle.uid = newId;
     }
-    else if(parentId != 'canvas' && window.selectedElement.style.display === 'grid'){
-        propStyle = window.props[type].gridChild;
-        newElementStyle.rowFixed = new Array(1).fill(false);
-        newElementStyle.colFixed = new Array(1).fill(false);
-    }
-    Object.keys(propStyle).forEach(prop => {
-        if(prop === 'showgrids')newElement.attr[prop] = propStyle[prop].default;
-        if(propStyle[prop].default)newElementStyle.style[prop] = propStyle[prop].default;
-    });
+    else {
+        newElementStyle = {
+            id: newId,
+            type: type,
+            style: {}
+        };
 
+        const propAttr = window.props[type].attr;
+        let propStyle = window.props[type].style;
+        Object.keys(propAttr).forEach(prop => {
+            if(propAttr[prop].default)newElement.attr[prop] = propAttr[prop].default;
+        });
+        if(parentId != 'canvas' && window.selectedElement.style.display === 'flex'){
+            propStyle = window.props[type].flexChild;
+        }
+        else if(parentId != 'canvas' && window.selectedElement.style.display === 'grid'){
+            propStyle = window.props[type].gridChild;
+            newElementStyle.rowFixed = new Array(1).fill(false);
+            newElementStyle.colFixed = new Array(1).fill(false);
+        }
+        Object.keys(propStyle).forEach(prop => {
+            if(prop === 'showgrids')newElement.attr[prop] = propStyle[prop].default;
+            if(propStyle[prop].default)newElementStyle.style[prop] = propStyle[prop].default;
+        });
+    }
     window.elementsList.push(newElementStyle);
     window.userIdMap.set(newId, newId);
 

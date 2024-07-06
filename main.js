@@ -30,6 +30,7 @@ window.addEventListener('DOMContentLoaded', (event) => {
     window.message = message;
     window.codeOuter = document.getElementById('code_outer');
     window.codeOuter.style.display = 'none';
+    window.copiedStyle = null;
 
     const addDivButton = document.getElementById('_adddiv');
     const delDivButton = document.getElementById('_deldiv');
@@ -80,6 +81,20 @@ window.addEventListener('DOMContentLoaded', (event) => {
     window.canvas.addEventListener('click', (e) => {
         if (e.target === window.canvas) {
             deselectElement();
+        }
+    });
+
+    document.addEventListener('keydown', function(event) {
+        if (event.ctrlKey && event.key === 'c') {
+            if (window.selectedElement) {
+                window.copiedStyle = deepCopy(window.elementsList.find(el => el.id === window.selectedElement.id));
+                console.log('Element copied');
+            }
+        } else if (event.ctrlKey && event.key === 'v') {
+            if (window.copiedStyle) {
+                addElement(window.copiedStyle.type,window.copiedStyle);
+                console.log('element pasted');
+            }
         }
     });
 });
