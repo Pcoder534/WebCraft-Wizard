@@ -1,6 +1,6 @@
-# WebCraftWizard
+# WebCraft-Wizard
 
-WebCraftWizard is a powerful frontend tool designed to empower users in creating responsive webpage templates effortlessly, without the need for coding. With an intuitive graphical interface, users can add, move, resize, and customize div elements seamlessly. 
+WebCraft-Wizard is a powerful frontend tool designed to empower users in creating responsive webpage templates effortlessly, without the need for coding. With an intuitive graphical interface, users can add, move, resize, and customize div elements seamlessly. 
 
 ## Key Features
 
@@ -9,4 +9,5 @@ WebCraftWizard is a powerful frontend tool designed to empower users in creating
 - **Media Queries Integration**: Implement media queries directly on the canvas, allowing precise control over responsive behaviors.
 - **Example Usage**: Includes a pre-made YouTube webpage template created using WebCraftWizard, showcasing its capabilities.
 
-Whether you're a novice designer or an experienced developer, WebCraftWizard simplifies the process of creating responsive web designs, highlighting your problem-solving skills through its robust feature set.
+Whether you're a novice designer or an experienced developer, WebCraftWizard simplifies the process of creating responsive web designs.
+[Go try out yourself](https://pcoder534.github.io/WebCraft-Wizard/)
