@@ -9,5 +9,5 @@ WebCraft-Wizard is a powerful frontend tool designed to empower users in creatin
 - **Media Queries Integration**: Implement media queries directly on the canvas, allowing precise control over responsive behaviors.
 - **Example Usage**: Includes a pre-made YouTube webpage template created using WebCraftWizard, showcasing its capabilities.
 
-Whether you're a novice designer or an experienced developer, WebCraftWizard simplifies the process of creating responsive web designs.
+Whether you're a novice designer or an experienced developer, WebCraftWizard simplifies the process of creating responsive web designs.  
 [Go try out yourself](https://pcoder534.github.io/WebCraft-Wizard/)
