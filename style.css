@@ -79,7 +79,7 @@ body {
     min-height:70%;
     min-width: 300px;
     width: auto;
-    padding: 10px;
+    padding: 5px;
     display: grid;
     grid-template-columns: auto auto;
     overflow-y: auto;
@@ -93,9 +93,16 @@ body {
 }
 .propDiv {
     width: 100%;
-    margin-bottom:10px;
+    margin-bottom:5px;
     align-items: center;
     justify-content: center;
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+    border: 2px solid black;
+    min-height: 50px;
+    max-height: 100px;
+    padding-top: 3px;
 }
 ._button, ._input {
     border: none;
@@ -120,11 +127,13 @@ body {
 }
 select {
     height: 20px;
+    padding: 0px;
 }
 ._button {
     background-color: green;
     color: white;
     width: 40%;
+    cursor:pointer;
 }
 
 ._button:active {
